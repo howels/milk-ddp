@@ -2,6 +2,8 @@
 /cmake-build-*/
 /.cache/
 /out/
+# Optional vendored libprojectM (make vendor-projectm)
+/third_party/projectm/
 *.o
 *.a
 *.so

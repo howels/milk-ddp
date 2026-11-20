@@ -1,0 +1,47 @@
+# Smaller musl image. Mesa llvmpipe still provides OpenGL 3.3 without a GPU.
+FROM alpine:3.20 AS build
+
+RUN apk add --no-cache \
+        build-base \
+        cmake \
+        git \
+        mesa-dev \
+        mesa-egl \
+        alsa-lib-dev \
+        pulseaudio-dev \
+        pkgconf \
+        python3
+
+WORKDIR /src
+COPY CMakeLists.txt ./
+COPY src ./src
+COPY presets ./presets
+COPY tests ./tests
+# Optional offline libprojectM tree (make vendor-projectm on the host first).
+COPY third_party ./third_party
+
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+    && cmake --build build -j"$(nproc)" \
+    && cmake --install build
+
+FROM alpine:3.20
+
+RUN apk add --no-cache \
+        alsa-lib \
+        libpulse \
+        mesa \
+        mesa-dri-gallium \
+        mesa-egl \
+        libstdc++ \
+        python3
+
+COPY --from=build /usr/bin/milkdrop-ddp /usr/bin/milkdrop-ddp
+COPY --from=build /usr/share/milkdrop-ddp /usr/share/milkdrop-ddp
+COPY --from=build /usr/libexec/milkdrop-ddp /usr/libexec/milkdrop-ddp
+
+ENV GALLIUM_DRIVER=llvmpipe \
+    MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
+
+ENTRYPOINT ["/usr/bin/milkdrop-ddp"]
+CMD ["--software-gl", "--preset-path", "/usr/share/milkdrop-ddp/presets", "--help"]

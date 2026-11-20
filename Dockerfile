@@ -1,6 +1,5 @@
-# Headless projectM → DDP. Mesa llvmpipe supplies OpenGL 3.3 without a GPU
-# or a window system. The runtime image holds the binary, two default
-# presets, and the Mesa software stack.
+# Default image is Debian (same as Dockerfile.debian).
+# Explicit tags: make docker-debian | make docker-alpine
 FROM debian:bookworm-slim AS build
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -11,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libegl1-mesa-dev \
         libgl1-mesa-dev \
         libglm-dev \
+        libasound2-dev \
         libpulse-dev \
         make \
         pkg-config \
@@ -21,6 +21,8 @@ COPY CMakeLists.txt ./
 COPY src ./src
 COPY presets ./presets
 COPY tests ./tests
+# Optional offline libprojectM tree (make vendor-projectm on the host first).
+COPY third_party ./third_party
 
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
@@ -33,6 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libegl1 \
         libgl1 \
         libgl1-mesa-dri \
+        libasound2 \
         libpulse0 \
         mesa-utils \
         python3 \
@@ -42,8 +45,8 @@ COPY --from=build /usr/bin/milkdrop-ddp /usr/bin/milkdrop-ddp
 COPY --from=build /usr/share/milkdrop-ddp /usr/share/milkdrop-ddp
 COPY --from=build /usr/libexec/milkdrop-ddp /usr/libexec/milkdrop-ddp
 
-ENV LIBGL_ALWAYS_SOFTWARE=1 \
-    GALLIUM_DRIVER=llvmpipe
+ENV GALLIUM_DRIVER=llvmpipe \
+    MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
 
 ENTRYPOINT ["/usr/bin/milkdrop-ddp"]
 CMD ["--software-gl", "--preset-path", "/usr/share/milkdrop-ddp/presets", "--help"]
