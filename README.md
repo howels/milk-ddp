@@ -155,6 +155,8 @@ Headless / no GPU:
 | `--dump-ppm FILE` | Write the last RGB frame as binary PPM |
 | `--software-gl` | Force Mesa software rasteriser |
 | `--no-shuffle` | Playlist order instead of random |
+| `--preset-duration SEC` | Seconds each playlist preset is shown (default 30) |
+| `--shuffle-delay SEC` | Alias for `--preset-duration` |
 | `--quiet` | Suppress startup status and progress |
 | `--progress` | Print a periodic frame counter on stderr |
 | `--set KEY=VALUE` | projectM property (repeatable) |
@@ -165,9 +167,9 @@ Example:
 
 ```bash
 ./build/milk-ddp --ddp 192.168.1.50 \
-  --set preset_duration=20 --set beat_sensitivity=1.8 \
+  --preset-duration 20 --set beat_sensitivity=1.8 \
   --set hard_cut_enabled=true --set mesh_size=32x24 \
-  --preset-path ./presets
+  --preset-path ./presets/modern
 ```
 
 If no `--preset` and no `.milk` files are found, the idle logo preset is loaded so the process still produces a DDP stream.
@@ -204,18 +206,22 @@ docker run --rm --network host \
 
 ### Shipped GPL-3.0 pack (64×64–256×256)
 
-In-tree presets are original GPL-3.0-or-later works aimed at LED matrices from
-**64×64 through 256×256**:
+In-tree packs:
 
-- `presets/milk-ddp-*.milk` — first light / CI samples  
-- `presets/lowres/` — twelve matrix-oriented presets (spectrum, bloom, spiral, tunnel, …)
+- `presets/milk-ddp-*.milk` / `presets/lowres/` — original **GPL-3.0-or-later** matrix presets (64×64–256×256)
+- `presets/modern/` — **MIT** MilkDrop 2 / mock-3D selection (M0Rf30): fractals, hyperspace, nebulae, kaleidoscope, shader warp/comp
 
 ```bash
 ./build/milk-ddp --width 64 --height 64 \
-  --preset-path ./presets/lowres --ddp 192.168.1.50:4048 --audio pulse
+  --preset-path ./presets/lowres --preset-duration 25 \
+  --ddp 192.168.1.50:4048 --audio pulse
+
+./build/milk-ddp --width 128 --height 128 \
+  --preset-path ./presets/modern --shuffle-delay 45 \
+  --ddp 192.168.1.50:4048 --audio pulse
 ```
 
-Details: [`presets/README.md`](presets/README.md).
+Details: [`presets/README.md`](presets/README.md), [`presets/modern/README.md`](presets/modern/README.md).
 
 ### Larger third-party packs (download separately)
 
@@ -300,7 +306,8 @@ Pixels are sent row-major, left to right, top to bottom, RGB888. That matches a 
 | Component | Licence |
 |---|---|
 | milk-ddp application (`src/`, `tests/`, build files) | **GPL-3.0-or-later** (`LICENSE`) |
-| In-tree presets (`presets/milk-ddp-*.milk`) | **GPL-3.0-or-later** (original to this repo) |
+| In-tree GPL presets (`presets/milk-ddp-*.milk`, `lowres/`) | **GPL-3.0-or-later** |
+| `presets/modern/` (M0Rf30 selection) | **MIT** |
 | libprojectM (FetchContent / local / system) | **LGPL-2.1-or-later** — see `THIRD_PARTY.md` |
 | External preset packs (Cream of the Crop, textures, …) | **Not shipped**; each pack’s own terms |
 

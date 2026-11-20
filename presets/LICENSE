@@ -1,4 +1,4 @@
-The Milkdrop preset files in this directory (and subdirectories) are
+The Milkdrop preset files in this directory and in `lowres/` are
 original works created for milk-ddp.
 
 Copyright (C) 2026 milk-ddp contributors
@@ -12,5 +12,7 @@ See ../LICENSE for the full GPL-3.0 text.
 
 These presets were written for LED matrices from 64×64 through 256×256
 (inclusive). They are not copies of Cream of the Crop, Winamp Milkdrop,
-or other third-party packs. External packs remain under their authors’
-terms; see README.md.
+or other third-party packs.
+
+The `modern/` subdirectory is a curated MIT-licensed selection from
+M0Rf30/projectm-presets. See `modern/LICENSE` and `modern/README.md`.

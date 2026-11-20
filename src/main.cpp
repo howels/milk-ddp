@@ -130,8 +130,11 @@ int main(int argc, char** argv)
             std::cerr << "libprojectM " << (ver != nullptr ? ver : "unknown") << "\n"
                       << "GL " << gl.renderer_string() << "\n"
                       << "render " << cfg.width << "x" << cfg.height << " @ " << cfg.fps
-                      << " fps → DDP " << cfg.ddp_host << ":" << cfg.ddp_port << "\n"
-                      << "presets in playlist: " << projectm_playlist_size(playlist.get()) << "\n";
+                      << " fps → DDP " << cfg.ddp_host << ":" << cfg.ddp_port
+                      << " (" << ddp.peer() << ")\n"
+                      << "presets in playlist: " << projectm_playlist_size(playlist.get())
+                      << "  shuffle=" << (cfg.shuffle ? "on" : "off")
+                      << "  duration=" << projectm_get_preset_duration(pm.get()) << "s\n";
             if (ver != nullptr) {
                 projectm_free_string(ver);
             }

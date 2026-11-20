@@ -14,8 +14,12 @@ public:
 
     void send_rgb_frame(const unsigned char* rgb, std::size_t pixel_count);
 
+    /** Numeric peer used after resolve (IPv4 preferred). */
+    const std::string& peer() const { return peer_; }
+
 private:
     int fd_ = -1;
     uint8_t sequence_ = 1;
+    std::string peer_;
     std::vector<unsigned char> packet_;
 };

@@ -1,9 +1,12 @@
 #include "ddp.hpp"
 
+#include <arpa/inet.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
 #include <stdexcept>
@@ -16,39 +19,70 @@ constexpr uint8_t kVer1 = 0x40;
 constexpr uint8_t kPush = 0x01;
 constexpr uint8_t kRgb24 = 0x0B;
 constexpr uint8_t kDestDisplay = 1;
+
+std::string format_peer(const sockaddr* addr, socklen_t len)
+{
+    char host[INET6_ADDRSTRLEN] = {};
+    char serv[16] = {};
+    const int rc = getnameinfo(addr, len, host, sizeof(host), serv, sizeof(serv),
+                               NI_NUMERICHOST | NI_NUMERICSERV);
+    if (rc != 0) {
+        return std::string("unknown (") + gai_strerror(rc) + ")";
+    }
+    if (addr->sa_family == AF_INET6) {
+        return std::string("[") + host + "]:" + serv;
+    }
+    return std::string(host) + ":" + serv;
+}
+
+// WLED on ESP32 listens on IPv4 UDP only. Dual-stack DNS often returns AAAA
+// first; a connected UDP socket to that AAAA "succeeds" while packets never
+// reach the controller. Prefer AF_INET, then fall back to AF_INET6.
+int connect_udp(const std::string& host, uint16_t port, std::string& peer_out)
+{
+    const int families[] = {AF_INET, AF_INET6};
+    std::string last_error = "no addresses";
+
+    for (int family : families) {
+        addrinfo hints {};
+        hints.ai_family = family;
+        hints.ai_socktype = SOCK_DGRAM;
+
+        addrinfo* result = nullptr;
+        const int rc =
+            getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
+        if (rc != 0) {
+            last_error = gai_strerror(rc);
+            continue;
+        }
+
+        int fd = -1;
+        for (addrinfo* ai = result; ai != nullptr; ai = ai->ai_next) {
+            fd = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+            if (fd < 0) {
+                last_error = std::strerror(errno);
+                continue;
+            }
+            if (::connect(fd, ai->ai_addr, ai->ai_addrlen) == 0) {
+                peer_out = format_peer(ai->ai_addr, ai->ai_addrlen);
+                freeaddrinfo(result);
+                return fd;
+            }
+            last_error = std::strerror(errno);
+            ::close(fd);
+            fd = -1;
+        }
+        freeaddrinfo(result);
+    }
+
+    throw std::runtime_error("DDP UDP connect failed for " + host + ":" +
+                             std::to_string(port) + " (" + last_error + ")");
+}
 }  // namespace
 
 DdpSender::DdpSender(const std::string& host, uint16_t port)
 {
-    addrinfo hints {};
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_DGRAM;
-
-    addrinfo* result = nullptr;
-    const int rc = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
-    if (rc != 0 || result == nullptr) {
-        throw std::runtime_error(std::string("DDP resolve failed: ") + gai_strerror(rc));
-    }
-
-    int fd = -1;
-    for (addrinfo* ai = result; ai != nullptr; ai = ai->ai_next) {
-        fd = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-        if (fd < 0) {
-            continue;
-        }
-        if (::connect(fd, ai->ai_addr, ai->ai_addrlen) == 0) {
-            break;
-        }
-        ::close(fd);
-        fd = -1;
-    }
-    freeaddrinfo(result);
-
-    if (fd < 0) {
-        throw std::runtime_error("DDP UDP connect failed for " + host + ":" +
-                                 std::to_string(port));
-    }
-    fd_ = fd;
+    fd_ = connect_udp(host, port, peer_);
     packet_.reserve(kHeader + kMaxRgbBytes);
 }
 

@@ -28,6 +28,9 @@ void print_usage()
         << "  --dump-ppm FILE          Write the last RGB frame as a PPM image\n"
         << "  --software-gl            Force Mesa llvmpipe (no GPU, no display)\n"
         << "  --no-shuffle             Play presets in directory order\n"
+        << "  --preset-duration SEC    Seconds each playlist preset is shown\n"
+        << "                           before the next transition (default 30)\n"
+        << "  --shuffle-delay SEC      Alias for --preset-duration\n"
         << "  --quiet                  Suppress startup status and progress\n"
         << "  --progress               Print a frame counter on stderr (off by default)\n"
         << "  --set KEY=VALUE          projectM property (repeatable). Keys:\n"
@@ -65,6 +68,17 @@ static int parse_int_range(const std::string& s, const char* name, long min, lon
 static int parse_dimension(const std::string& s, const char* name)
 {
     return parse_int_range(s, name, 1, 4096);
+}
+
+static double parse_positive_seconds(const std::string& s, const char* name)
+{
+    char* end = nullptr;
+    const double v = std::strtod(s.c_str(), &end);
+    if (end == s.c_str() || *end != '\0' || !(v > 0.0) || v > 86400.0) {
+        throw std::runtime_error(std::string("invalid ") + name + ": " + s +
+                                 " (want seconds in (0, 86400])");
+    }
+    return v;
 }
 
 static void parse_ddp(const std::string& spec, Config& cfg)
@@ -128,6 +142,14 @@ Config parse_args(int argc, char** argv)
             cfg.software_gl = true;
         } else if (std::strcmp(a, "--no-shuffle") == 0) {
             cfg.shuffle = false;
+        } else if (std::strcmp(a, "--preset-duration") == 0 ||
+                   std::strcmp(a, "--shuffle-delay") == 0) {
+            cfg.preset_duration =
+                parse_positive_seconds(require_value(i, argc, argv, a), a);
+        } else if (starts_with(a, "--preset-duration=")) {
+            cfg.preset_duration = parse_positive_seconds(a + 18, "--preset-duration");
+        } else if (starts_with(a, "--shuffle-delay=")) {
+            cfg.preset_duration = parse_positive_seconds(a + 16, "--shuffle-delay");
         } else if (std::strcmp(a, "--quiet") == 0) {
             cfg.quiet = true;
         } else if (std::strcmp(a, "--progress") == 0) {

@@ -85,9 +85,13 @@ void apply_projectm_properties(projectm_handle pm, projectm_playlist_handle play
     projectm_set_window_size(pm, static_cast<std::size_t>(cfg.width),
                              static_cast<std::size_t>(cfg.height));
     projectm_set_fps(pm, cfg.fps);
+    if (cfg.preset_duration > 0.0) {
+        projectm_set_preset_duration(pm, cfg.preset_duration);
+    }
     if (playlist != nullptr) {
         projectm_playlist_set_shuffle(playlist, cfg.shuffle);
     }
+    // --set can override --preset-duration / --shuffle-delay.
     for (const auto& kv : cfg.properties) {
         apply_one_property(pm, playlist, kv.first, kv.second);
     }

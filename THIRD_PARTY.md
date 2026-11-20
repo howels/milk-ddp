@@ -25,21 +25,21 @@ libprojectM source tree.
 
 ## In-tree presets (`presets/`)
 
-All `.milk` files under `presets/` (including `presets/lowres/`) were written
-for this repository for LED matrices **64×64 through 256×256**. They are part
-of milk-ddp and are covered by **GPL-3.0-or-later**. See `presets/LICENSE`
-and `presets/README.md`.
+| Path | Licence | Notes |
+|---|---|---|
+| `presets/*.milk`, `presets/lowres/` | **GPL-3.0-or-later** | Original works for LED matrices 64×64–256×256. See `presets/LICENSE`. |
+| `presets/modern/` | **MIT** | Curated MilkDrop 2 / mock-3D selection from [M0Rf30/projectm-presets](https://github.com/M0Rf30/projectm-presets). See `presets/modern/LICENSE`. |
 
-## Recommended external preset packs (not shipped)
+## Recommended external preset packs (optional)
 
-These packs are **not** included in this repository. Clone them separately and
-pass `--preset-path` / `--texture-path`. Check each pack’s own licence and
-attribution before redistribution.
+Clone separately and pass `--preset-path` / `--texture-path`. Check each pack’s
+own licence and attribution before redistribution.
 
 | Pack | Repository | Notes |
 |---|---|---|
-| Cream of the Crop (recommended default) | [projectM-visualizer/presets-cream-of-the-crop](https://github.com/projectM-visualizer/presets-cream-of-the-crop) | ~10k curated Milkdrop presets; default pack in modern projectM frontends. Curated by ISOSCELES / Jason Fletcher. |
-| Milkdrop texture pack | [projectM-visualizer/presets-milkdrop-texture-pack](https://github.com/projectM-visualizer/presets-milkdrop-texture-pack) | Base textures many presets expect; use with `--texture-path`. |
+| M0Rf30 modern presets (full upstream) | [M0Rf30/projectm-presets](https://github.com/M0Rf30/projectm-presets) | MIT. A subset is already under `presets/modern/`. MilkDrop 3 `.milk2` needs a MilkDrop 3 player, not projectM. |
+| Cream of the Crop | [projectM-visualizer/presets-cream-of-the-crop](https://github.com/projectM-visualizer/presets-cream-of-the-crop) | ~10k curated presets (Fractal, Hypnotic, …); default in modern projectM frontends. Treated as public-domain redistribution by that repo; individual authors may still assert rights. |
+| Milkdrop texture pack | [projectM-visualizer/presets-milkdrop-texture-pack](https://github.com/projectM-visualizer/presets-milkdrop-texture-pack) | Base textures many classic presets expect; use with `--texture-path`. |
 | Classic projectM presets | [projectM-visualizer/presets-projectm-2.0](https://github.com/projectM-visualizer/presets-projectm-2.0) | Older projectM collection. |
 | Milkdrop 2 presets | See projectM org / Winamp Milkdrop collections | Original Milkdrop 1/2 sets; licence varies by author. |
 

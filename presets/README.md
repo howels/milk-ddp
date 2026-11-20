@@ -1,23 +1,21 @@
 # Presets (GPL-3.0-or-later)
 
-All `.milk` files under this tree are **original works** for milk-ddp,
-licensed under the same **GPL-3.0-or-later** terms as the application
-(`LICENSE` here and `../LICENSE`).
+Root samples and `lowres/` are **original GPL-3.0-or-later** works for milk-ddp
+LED matrices (**64×64–256×256**): thick waves, high contrast, strong beat
+coupling, no texture dependencies. They are not copies of Cream of the Crop.
 
-They are **not** copies of Cream of the Crop, Winamp Milkdrop, or other
-third-party packs. Popular Milkdrop *motifs* (spectrum, tunnel, radial bloom,
-spiral, circle wave, plasma) informed the design; equations and parameters
-target LED matrices from **64×64 to 256×256**: thick waves, high contrast,
-strong beat coupling, no texture dependencies.
+`modern/` is a **MIT** curated selection of post-classic MilkDrop 2 presets
+(shaders, mock-3D, fractals) from M0Rf30 — see `modern/README.md`.
 
 ## Pack layout
 
 | Path | Contents |
 |---|---|
-| `milk-ddp-bars.milk` | First-light / CI waveform |
-| `milk-ddp-tunnel.milk` | Soft warp sample |
-| `lowres/` | Twelve GPL-3.0 presets for 64×64–256×256 matrices |
-| `LICENSE` | GPL notice for this preset tree |
+| `milk-ddp-bars.milk` | First-light / CI waveform (GPL) |
+| `milk-ddp-tunnel.milk` | Soft warp sample (GPL) |
+| `lowres/` | Twelve GPL presets for 64×64–256×256 matrices |
+| `modern/` | Nine MIT MilkDrop 2 / mock-3D presets (M0Rf30) |
+| `LICENSE` | GPL notice for the original in-tree presets |
 
 ### `lowres/` (64×64–256×256 WLED matrices)
 
@@ -57,10 +55,20 @@ prefer a denser third-party pack plus textures.
 ./build/milk-ddp --width 256 --height 256 \
   --preset-path ./presets/lowres --ddp 192.168.1.50:4048 --audio pulse
 
-# Entire in-tree tree (samples + lowres)
+# Modern MilkDrop 2 / mock-3D pack (128×128+)
 ./build/milk-ddp --width 128 --height 128 \
-  --preset-path ./presets --ddp 192.168.1.50:4048 --audio pulse
+  --preset-path ./presets/modern \
+  --shuffle-delay 45 \
+  --ddp 192.168.1.50:4048 --audio pulse
+
+# Entire in-tree tree (GPL samples + lowres + modern)
+./build/milk-ddp --width 128 --height 128 \
+  --preset-path ./presets --preset-duration 30 \
+  --ddp 192.168.1.50:4048 --audio pulse
 ```
+
+`--preset-duration` / `--shuffle-delay` set how long each playlist preset is
+shown before the next transition (libprojectM default is 30 seconds).
 
 ## Larger third-party packs (optional, not GPL-cleared as a set)
 
