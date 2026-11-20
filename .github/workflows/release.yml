@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag name to build (for manual runs without a push)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: build-release-assets
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Version
+        id: ver
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake g++ git pkg-config make \
+            libegl1-mesa-dev libgl1-mesa-dev libgl1-mesa-dri \
+            libpulse-dev libasound2-dev \
+            mesa-utils python3
+
+      - name: Record libprojectM tag
+        id: projectm
+        run: |
+          TAG=$(sed -n 's/.*MILKDROP_DDP_PROJECTM_GIT_TAG "\([^"]*\)".*/\1/p' CMakeLists.txt | head -1)
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure and build
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j"$(nproc)"
+
+      - name: Validate
+        run: bash tests/validate.sh
+        env:
+          GALLIUM_DRIVER: llvmpipe
+          MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
+
+      - name: Stage release directory
+        run: |
+          STAGE="milkdrop-ddp-${{ steps.ver.outputs.version }}-linux-x86_64"
+          mkdir -p "${STAGE}"
+          cp -a build/milkdrop-ddp "${STAGE}/"
+          cp -a LICENSE THIRD_PARTY.md README.md "${STAGE}/"
+          cp -a presets "${STAGE}/"
+          printf '%s\n' \
+            "milkdrop-ddp ${{ steps.ver.outputs.tag }}" \
+            "libprojectM ${{ steps.projectm.outputs.tag }}" \
+            "built-on $(uname -srm)" \
+            "commit ${GITHUB_SHA}" \
+            > "${STAGE}/BUILD_INFO.txt"
+          tar -czf "${STAGE}.tar.gz" "${STAGE}"
+          echo "ASSET=${STAGE}.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Build container images
+        run: |
+          mkdir -p third_party && touch third_party/.gitkeep
+          docker build -f Dockerfile.debian \
+            -t "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}" \
+            -t "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}-debian" \
+            .
+          docker build -f Dockerfile.alpine \
+            -t "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}-alpine" \
+            .
+          docker save \
+            "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}-debian" \
+            | gzip > "milkdrop-ddp-${{ steps.ver.outputs.version }}-debian-amd64.tar.gz"
+          docker save \
+            "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}-alpine" \
+            | gzip > "milkdrop-ddp-${{ steps.ver.outputs.version }}-alpine-amd64.tar.gz"
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## milkdrop-ddp ${{ steps.ver.outputs.tag }}
+
+            Headless projectM → DDP for WLED matrices.
+
+            **Licence:** GPL-3.0-or-later (application and in-tree presets).  
+            **libprojectM:** ${{ steps.projectm.outputs.tag }} (LGPL-2.1-or-later) — see `THIRD_PARTY.md` in the tarball.
+
+            ### Assets
+            - `milkdrop-ddp-*-linux-x86_64.tar.gz` — binary, GPL licence, sample presets, third-party notices
+            - `*-debian-amd64.tar.gz` / `*-alpine-amd64.tar.gz` — `docker load` images
+
+            Large Milkdrop packs (Cream of the Crop, textures) are **not** included; see `presets/README.md`.
+          files: |
+            milkdrop-ddp-${{ steps.ver.outputs.version }}-linux-x86_64.tar.gz
+            milkdrop-ddp-${{ steps.ver.outputs.version }}-debian-amd64.tar.gz
+            milkdrop-ddp-${{ steps.ver.outputs.version }}-alpine-amd64.tar.gz

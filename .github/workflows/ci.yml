@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build-and-validate
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake g++ git pkg-config make \
+            libegl1-mesa-dev libgl1-mesa-dev libgl1-mesa-dri \
+            libpulse-dev libasound2-dev \
+            mesa-utils python3
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Headless DDP validate
+        run: bash tests/validate.sh
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          GALLIUM_DRIVER: llvmpipe
+          MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
+
+      - name: List audio backends
+        run: ./build/milkdrop-ddp --list-audio || true
+
+      - name: Upload binary (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: milkdrop-ddp-linux-x86_64
+          path: |
+            build/milkdrop-ddp
+            LICENSE
+            THIRD_PARTY.md
+            presets/
+          if-no-files-found: error
+
+  docker:
+    name: docker-debian
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure third_party dir for COPY
+        run: mkdir -p third_party && touch third_party/.gitkeep
+
+      - name: Build Debian image
+        run: docker build -f Dockerfile.debian -t milkdrop-ddp:ci .
+
+      - name: Smoke-test image help
+        run: |
+          docker run --rm milkdrop-ddp:ci \
+            --software-gl --preset-path /usr/share/milkdrop-ddp/presets --help

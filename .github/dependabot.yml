@@ -1,0 +1,10 @@
+# Dependabot complements Renovate for Actions if Renovate is not enabled.
+# Prefer Renovate (renovate.json) as the primary updater.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
