@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later
+ * Copyright (C) 2026 milkdrop-ddp contributors
+ */
 #include "audio.hpp"
 #include "cli.hpp"
 #include "ddp.hpp"
@@ -45,6 +48,9 @@ int main(int argc, char** argv)
 {
     try {
         const Config cfg = parse_args(argc, argv);
+        if (cfg.list_audio) {
+            return list_audio_devices();
+        }
 
         std::signal(SIGINT, on_signal);
         std::signal(SIGTERM, on_signal);
@@ -127,7 +133,7 @@ int main(int argc, char** argv)
             ddp.send_rgb_frame(rgb.data(), static_cast<std::size_t>(cfg.width) * cfg.height);
 
             ++frame;
-            if (!cfg.quiet && (frame == 1 || frame % cfg.fps == 0)) {
+            if (cfg.progress && !cfg.quiet && (frame == 1 || frame % cfg.fps == 0)) {
                 std::cerr << "frames " << frame << "\n";
             }
 

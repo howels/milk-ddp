@@ -14,3 +14,6 @@ public:
 };
 
 std::unique_ptr<AudioSource> make_audio_source(const std::string& spec, int sample_rate);
+
+// Print PulseAudio/PipeWire record sources to stdout. Returns 0 on success.
+int list_audio_devices();

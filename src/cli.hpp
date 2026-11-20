@@ -20,7 +20,9 @@ struct Config {
     std::string dump_ppm;
     bool software_gl = false;
     bool shuffle = true;
-    bool quiet = false;
+    bool quiet = false;      // suppress startup banner and progress
+    bool progress = false;   // periodic frame counter on stderr
+    bool list_audio = false; // print Pulse/ALSA devices and exit
     std::vector<std::pair<std::string, std::string>> properties;
 };
 

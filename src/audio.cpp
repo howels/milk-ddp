@@ -1,16 +1,24 @@
 #include "audio.hpp"
 
+#include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <iostream>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 #ifdef HAVE_PULSE
-#include <pulse/error.h>
-#include <pulse/simple.h>
+#include <pulse/pulseaudio.h>
+#endif
+
+#ifdef HAVE_ALSA
+#include <alsa/asoundlib.h>
 #endif
 
 namespace {
@@ -176,47 +184,695 @@ private:
 };
 
 #ifdef HAVE_PULSE
+
+// Async Pulse capture: subscribe to source/server events so a device that
+// appears after start (or replaces the default source) is opened without
+// restarting the process. fill() returns silence while disconnected.
 class PulseAudio final : public AudioSource {
 public:
-    explicit PulseAudio(int sample_rate) : sample_rate_(sample_rate)
+    PulseAudio(int sample_rate, std::string device)
+        : sample_rate_(sample_rate), device_(std::move(device))
     {
-        pa_sample_spec spec {};
-        spec.format = PA_SAMPLE_FLOAT32LE;
-        spec.rate = static_cast<uint32_t>(sample_rate_);
-        spec.channels = 2;
-        int err = 0;
-        stream_ = pa_simple_new(nullptr, "milkdrop-ddp", PA_STREAM_RECORD, nullptr,
-                                "visualiser", &spec, nullptr, nullptr, &err);
-        if (stream_ == nullptr) {
-            throw std::runtime_error(std::string("PulseAudio record failed: ") +
-                                     pa_strerror(err));
+        // ~1 s of stereo float at the configured rate.
+        ring_.assign(static_cast<std::size_t>(sample_rate_) * 2, 0.0f);
+
+        mainloop_ = pa_threaded_mainloop_new();
+        if (mainloop_ == nullptr) {
+            throw std::runtime_error("PulseAudio: pa_threaded_mainloop_new failed");
         }
+
+        pa_threaded_mainloop_lock(mainloop_);
+        context_ = pa_context_new(pa_threaded_mainloop_get_api(mainloop_), "milkdrop-ddp");
+        if (context_ == nullptr) {
+            pa_threaded_mainloop_unlock(mainloop_);
+            pa_threaded_mainloop_free(mainloop_);
+            mainloop_ = nullptr;
+            throw std::runtime_error("PulseAudio: pa_context_new failed");
+        }
+
+        pa_context_set_state_callback(context_, &PulseAudio::on_context_state, this);
+        pa_context_set_subscribe_callback(context_, &PulseAudio::on_subscribe, this);
+
+        if (pa_context_connect(context_, nullptr, PA_CONTEXT_NOFLAGS, nullptr) < 0) {
+            const char* err = pa_strerror(pa_context_errno(context_));
+            pa_context_unref(context_);
+            context_ = nullptr;
+            pa_threaded_mainloop_unlock(mainloop_);
+            pa_threaded_mainloop_free(mainloop_);
+            mainloop_ = nullptr;
+            throw std::runtime_error(std::string("PulseAudio connect failed: ") + err);
+        }
+        pa_threaded_mainloop_unlock(mainloop_);
+
+        if (pa_threaded_mainloop_start(mainloop_) < 0) {
+            destroy();
+            throw std::runtime_error("PulseAudio: mainloop start failed");
+        }
+
+        if (!wait_for_context_ready(std::chrono::seconds(5))) {
+            destroy();
+            throw std::runtime_error("PulseAudio: context did not become ready");
+        }
+
+        // Open now if a source exists; otherwise stay silent until hotplug.
+        request_open();
     }
 
-    ~PulseAudio() override
-    {
-        if (stream_ != nullptr) {
-            pa_simple_free(stream_);
-        }
-    }
+    ~PulseAudio() override { destroy(); }
 
     int sample_rate() const override { return sample_rate_; }
 
     unsigned int fill(std::vector<float>& interleaved, unsigned int frames) override
     {
-        interleaved.resize(static_cast<std::size_t>(frames) * 2);
-        int err = 0;
-        if (pa_simple_read(stream_, interleaved.data(),
-                           interleaved.size() * sizeof(float), &err) < 0) {
-            throw std::runtime_error(std::string("PulseAudio read failed: ") + pa_strerror(err));
+        interleaved.assign(static_cast<std::size_t>(frames) * 2, 0.0f);
+
+        // If still offline, periodically nudge an open attempt in case a
+        // subscription event was missed (e.g. race at connect time).
+        if (!connected_.load(std::memory_order_relaxed)) {
+            const auto now = std::chrono::steady_clock::now();
+            if (now - last_retry_ >= std::chrono::milliseconds(500)) {
+                last_retry_ = now;
+                request_open();
+            }
+            return frames;
+        }
+
+        std::lock_guard<std::mutex> lock(ring_mu_);
+        const std::size_t want = static_cast<std::size_t>(frames) * 2;
+        const std::size_t have = std::min(want, ring_filled_);
+        for (std::size_t i = 0; i < have; ++i) {
+            interleaved[i] = ring_[ring_read_];
+            ring_read_ = (ring_read_ + 1) % ring_.size();
+        }
+        ring_filled_ -= have;
+        return frames;
+    }
+
+private:
+    void destroy() noexcept
+    {
+        if (mainloop_ == nullptr) {
+            return;
+        }
+        pa_threaded_mainloop_stop(mainloop_);
+        pa_threaded_mainloop_lock(mainloop_);
+        close_stream_locked();
+        if (context_ != nullptr) {
+            pa_context_disconnect(context_);
+            pa_context_unref(context_);
+            context_ = nullptr;
+        }
+        pa_threaded_mainloop_unlock(mainloop_);
+        pa_threaded_mainloop_free(mainloop_);
+        mainloop_ = nullptr;
+        connected_.store(false, std::memory_order_relaxed);
+    }
+
+    bool wait_for_context_ready(std::chrono::milliseconds timeout)
+    {
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
+        pa_threaded_mainloop_lock(mainloop_);
+        while (pa_context_get_state(context_) != PA_CONTEXT_READY) {
+            const auto st = pa_context_get_state(context_);
+            if (st == PA_CONTEXT_FAILED || st == PA_CONTEXT_TERMINATED) {
+                pa_threaded_mainloop_unlock(mainloop_);
+                return false;
+            }
+            if (std::chrono::steady_clock::now() >= deadline) {
+                pa_threaded_mainloop_unlock(mainloop_);
+                return false;
+            }
+            pa_threaded_mainloop_wait(mainloop_);
+        }
+        pa_threaded_mainloop_unlock(mainloop_);
+        return true;
+    }
+
+    void request_open()
+    {
+        if (mainloop_ == nullptr || context_ == nullptr) {
+            return;
+        }
+        pa_threaded_mainloop_lock(mainloop_);
+        if (pa_context_get_state(context_) != PA_CONTEXT_READY) {
+            pa_threaded_mainloop_unlock(mainloop_);
+            return;
+        }
+        if (!device_.empty()) {
+            open_stream_locked(device_.c_str());
+        } else {
+            // Resolve the current default source, then open it.
+            pa_operation* op =
+                pa_context_get_server_info(context_, &PulseAudio::on_server_info, this);
+            if (op != nullptr) {
+                pa_operation_unref(op);
+            }
+        }
+        pa_threaded_mainloop_unlock(mainloop_);
+    }
+
+    void close_stream_locked()
+    {
+        if (stream_ != nullptr) {
+            pa_stream_set_state_callback(stream_, nullptr, nullptr);
+            pa_stream_set_read_callback(stream_, nullptr, nullptr);
+            if (pa_stream_get_state(stream_) != PA_STREAM_UNCONNECTED) {
+                pa_stream_disconnect(stream_);
+            }
+            pa_stream_unref(stream_);
+            stream_ = nullptr;
+        }
+        connected_.store(false, std::memory_order_relaxed);
+        {
+            std::lock_guard<std::mutex> lock(ring_mu_);
+            ring_read_ = ring_write_ = 0;
+            ring_filled_ = 0;
+        }
+    }
+
+    void open_stream_locked(const char* source)
+    {
+        if (source == nullptr || source[0] == '\0') {
+            return;
+        }
+        if (stream_ != nullptr && active_source_ == source &&
+            pa_stream_get_state(stream_) == PA_STREAM_READY) {
+            return;
+        }
+
+        close_stream_locked();
+        active_source_ = source;
+
+        pa_sample_spec spec {};
+        spec.format = PA_SAMPLE_FLOAT32LE;
+        spec.rate = static_cast<uint32_t>(sample_rate_);
+        spec.channels = 2;
+
+        pa_buffer_attr attr {};
+        attr.maxlength = static_cast<uint32_t>(-1);
+        attr.tlength = static_cast<uint32_t>(-1);
+        attr.prebuf = static_cast<uint32_t>(-1);
+        attr.minreq = static_cast<uint32_t>(-1);
+        // ~50 ms fragments keep latency low for the visualiser.
+        attr.fragsize = static_cast<uint32_t>(sample_rate_ / 20 * 2 * sizeof(float));
+
+        stream_ = pa_stream_new(context_, "visualiser", &spec, nullptr);
+        if (stream_ == nullptr) {
+            std::cerr << "milkdrop-ddp: PulseAudio stream create failed: "
+                      << pa_strerror(pa_context_errno(context_)) << "\n";
+            return;
+        }
+
+        pa_stream_set_state_callback(stream_, &PulseAudio::on_stream_state, this);
+        pa_stream_set_read_callback(stream_, &PulseAudio::on_stream_read, this);
+
+        const pa_stream_flags_t flags = static_cast<pa_stream_flags_t>(
+            PA_STREAM_ADJUST_LATENCY | PA_STREAM_AUTO_TIMING_UPDATE);
+
+        if (pa_stream_connect_record(stream_, source, &attr, flags) < 0) {
+            std::cerr << "milkdrop-ddp: PulseAudio connect_record(" << source
+                      << ") failed: " << pa_strerror(pa_context_errno(context_)) << "\n";
+            close_stream_locked();
+            active_source_.clear();
+        }
+    }
+
+    static void on_context_state(pa_context* ctx, void* userdata)
+    {
+        auto* self = static_cast<PulseAudio*>(userdata);
+        switch (pa_context_get_state(ctx)) {
+        case PA_CONTEXT_READY: {
+            pa_operation* sub = pa_context_subscribe(
+                ctx,
+                static_cast<pa_subscription_mask_t>(PA_SUBSCRIPTION_MASK_SOURCE |
+                                                    PA_SUBSCRIPTION_MASK_SERVER),
+                nullptr, nullptr);
+            if (sub != nullptr) {
+                pa_operation_unref(sub);
+            }
+            self->open_after_ready_locked();
+            pa_threaded_mainloop_signal(self->mainloop_, 0);
+            break;
+        }
+        case PA_CONTEXT_FAILED:
+        case PA_CONTEXT_TERMINATED:
+            self->close_stream_locked();
+            pa_threaded_mainloop_signal(self->mainloop_, 0);
+            break;
+        default:
+            pa_threaded_mainloop_signal(self->mainloop_, 0);
+            break;
+        }
+    }
+
+    void open_after_ready_locked()
+    {
+        if (!device_.empty()) {
+            open_stream_locked(device_.c_str());
+        } else {
+            pa_operation* op =
+                pa_context_get_server_info(context_, &PulseAudio::on_server_info, this);
+            if (op != nullptr) {
+                pa_operation_unref(op);
+            }
+        }
+    }
+
+    static void on_server_info(pa_context* /*ctx*/, const pa_server_info* info, void* userdata)
+    {
+        auto* self = static_cast<PulseAudio*>(userdata);
+        if (info == nullptr || info->default_source_name == nullptr) {
+            return;
+        }
+        self->open_stream_locked(info->default_source_name);
+    }
+
+    static void on_subscribe(pa_context* ctx, pa_subscription_event_type_t type, uint32_t /*idx*/,
+                             void* userdata)
+    {
+        auto* self = static_cast<PulseAudio*>(userdata);
+        const auto facility = static_cast<pa_subscription_event_type_t>(
+            type & PA_SUBSCRIPTION_EVENT_FACILITY_MASK);
+        const auto event = static_cast<pa_subscription_event_type_t>(
+            type & PA_SUBSCRIPTION_EVENT_TYPE_MASK);
+
+        if (facility == PA_SUBSCRIPTION_EVENT_SERVER &&
+            (event == PA_SUBSCRIPTION_EVENT_CHANGE || event == PA_SUBSCRIPTION_EVENT_NEW)) {
+            // Default source may have changed.
+            if (self->device_.empty()) {
+                pa_operation* op =
+                    pa_context_get_server_info(ctx, &PulseAudio::on_server_info, self);
+                if (op != nullptr) {
+                    pa_operation_unref(op);
+                }
+            }
+            return;
+        }
+
+        if (facility == PA_SUBSCRIPTION_EVENT_SOURCE) {
+            if (event == PA_SUBSCRIPTION_EVENT_NEW || event == PA_SUBSCRIPTION_EVENT_CHANGE) {
+                if (!self->device_.empty()) {
+                    self->open_stream_locked(self->device_.c_str());
+                } else {
+                    pa_operation* op =
+                        pa_context_get_server_info(ctx, &PulseAudio::on_server_info, self);
+                    if (op != nullptr) {
+                        pa_operation_unref(op);
+                    }
+                }
+            } else if (event == PA_SUBSCRIPTION_EVENT_REMOVE) {
+                // Stream state callback will mark us disconnected; retry via
+                // server info so a remaining default source is picked up.
+                if (self->device_.empty()) {
+                    pa_operation* op =
+                        pa_context_get_server_info(ctx, &PulseAudio::on_server_info, self);
+                    if (op != nullptr) {
+                        pa_operation_unref(op);
+                    }
+                } else {
+                    self->close_stream_locked();
+                }
+            }
+        }
+    }
+
+    static void on_stream_state(pa_stream* stream, void* userdata)
+    {
+        auto* self = static_cast<PulseAudio*>(userdata);
+        switch (pa_stream_get_state(stream)) {
+        case PA_STREAM_READY:
+            self->connected_.store(true, std::memory_order_relaxed);
+            std::cerr << "milkdrop-ddp: PulseAudio recording from "
+                      << (self->active_source_.empty() ? "(default)" : self->active_source_)
+                      << "\n";
+            break;
+        case PA_STREAM_FAILED:
+            std::cerr << "milkdrop-ddp: PulseAudio stream failed: "
+                      << pa_strerror(pa_context_errno(self->context_)) << "\n";
+            self->connected_.store(false, std::memory_order_relaxed);
+            break;
+        case PA_STREAM_TERMINATED:
+            self->connected_.store(false, std::memory_order_relaxed);
+            break;
+        default:
+            break;
+        }
+    }
+
+    static void on_stream_read(pa_stream* stream, size_t /*nbytes*/, void* userdata)
+    {
+        auto* self = static_cast<PulseAudio*>(userdata);
+        const void* data = nullptr;
+        size_t bytes = 0;
+        if (pa_stream_peek(stream, &data, &bytes) < 0) {
+            return;
+        }
+        if (data == nullptr && bytes > 0) {
+            // Hole in the buffer; drop it.
+            pa_stream_drop(stream);
+            return;
+        }
+        if (data == nullptr || bytes == 0) {
+            if (bytes == 0) {
+                pa_stream_drop(stream);
+            }
+            return;
+        }
+
+        const auto* samples = static_cast<const float*>(data);
+        const std::size_t count = bytes / sizeof(float);
+        {
+            std::lock_guard<std::mutex> lock(self->ring_mu_);
+            for (std::size_t i = 0; i < count; ++i) {
+                self->ring_[self->ring_write_] = samples[i];
+                self->ring_write_ = (self->ring_write_ + 1) % self->ring_.size();
+                if (self->ring_filled_ < self->ring_.size()) {
+                    ++self->ring_filled_;
+                } else {
+                    self->ring_read_ = (self->ring_read_ + 1) % self->ring_.size();
+                }
+            }
+        }
+        pa_stream_drop(stream);
+    }
+
+    int sample_rate_;
+    std::string device_;
+    std::string active_source_;
+
+    pa_threaded_mainloop* mainloop_ = nullptr;
+    pa_context* context_ = nullptr;
+    pa_stream* stream_ = nullptr;
+
+    std::vector<float> ring_;
+    std::size_t ring_read_ = 0;
+    std::size_t ring_write_ = 0;
+    std::size_t ring_filled_ = 0;
+    std::mutex ring_mu_;
+    std::atomic<bool> connected_{false};
+    std::chrono::steady_clock::time_point last_retry_{};
+};
+
+#endif  // HAVE_PULSE
+
+#ifdef HAVE_ALSA
+
+// ALSA capture with reconnect: if the device is missing at start or is
+// unplugged later, fill() returns silence and retries open every 500 ms.
+class AlsaAudio final : public AudioSource {
+public:
+    AlsaAudio(int sample_rate, std::string device)
+        : sample_rate_(sample_rate), device_(device.empty() ? "default" : std::move(device))
+    {
+        if (!try_open()) {
+            std::cerr << "milkdrop-ddp: ALSA device \"" << device_
+                      << "\" not open yet; will retry when it appears\n";
+        }
+    }
+
+    ~AlsaAudio() override { close(); }
+
+    int sample_rate() const override { return sample_rate_; }
+
+    unsigned int fill(std::vector<float>& interleaved, unsigned int frames) override
+    {
+        interleaved.assign(static_cast<std::size_t>(frames) * 2, 0.0f);
+
+        if (pcm_ == nullptr) {
+            const auto now = std::chrono::steady_clock::now();
+            if (now - last_retry_ >= std::chrono::milliseconds(500)) {
+                last_retry_ = now;
+                try_open();
+            }
+            return frames;
+        }
+
+        const snd_pcm_sframes_t want = static_cast<snd_pcm_sframes_t>(frames);
+        const snd_pcm_sframes_t got = snd_pcm_readi(pcm_, interleaved.data(), want);
+        if (got == -EPIPE || got == -ESTRPIPE) {
+            snd_pcm_prepare(pcm_);
+            return frames;
+        }
+        if (got < 0) {
+            std::cerr << "milkdrop-ddp: ALSA read failed: " << snd_strerror(static_cast<int>(got))
+                      << "\n";
+            close();
+            return frames;
+        }
+        if (got < want) {
+            // Partial read already wrote the leading samples; leave the rest zero.
         }
         return frames;
     }
 
 private:
+    bool try_open()
+    {
+        close();
+        int err = snd_pcm_open(&pcm_, device_.c_str(), SND_PCM_STREAM_CAPTURE, 0);
+        if (err < 0) {
+            pcm_ = nullptr;
+            return false;
+        }
+
+        // soft_resample=1 lets plughw/default convert rate/channels when needed.
+        err = snd_pcm_set_params(pcm_, SND_PCM_FORMAT_FLOAT_LE, SND_PCM_ACCESS_RW_INTERLEAVED, 2,
+                                 static_cast<unsigned int>(sample_rate_), 1, 500000);
+        if (err < 0) {
+            std::cerr << "milkdrop-ddp: ALSA set_params(" << device_
+                      << ") failed: " << snd_strerror(err) << "\n";
+            close();
+            return false;
+        }
+
+        err = snd_pcm_prepare(pcm_);
+        if (err < 0) {
+            std::cerr << "milkdrop-ddp: ALSA prepare(" << device_
+                      << ") failed: " << snd_strerror(err) << "\n";
+            close();
+            return false;
+        }
+
+        std::cerr << "milkdrop-ddp: ALSA recording from " << device_ << "\n";
+        return true;
+    }
+
+    void close() noexcept
+    {
+        if (pcm_ != nullptr) {
+            snd_pcm_close(pcm_);
+            pcm_ = nullptr;
+        }
+    }
+
     int sample_rate_;
-    pa_simple* stream_ = nullptr;
+    std::string device_;
+    snd_pcm_t* pcm_ = nullptr;
+    std::chrono::steady_clock::time_point last_retry_{};
 };
+
+#endif  // HAVE_ALSA
+
+}  // namespace
+
+namespace {
+
+#ifdef HAVE_PULSE
+int list_pulse_sources()
+{
+    struct SourceRow {
+        std::string name;
+        std::string description;
+        bool monitor = false;
+    };
+
+    struct ListState {
+        std::string default_source;
+        std::vector<SourceRow> sources;
+        bool failed = false;
+        bool got_server = false;
+        bool got_sources = false;
+    } state;
+
+    pa_mainloop* mainloop = pa_mainloop_new();
+    if (mainloop == nullptr) {
+        std::cout << "PulseAudio/PipeWire: mainloop create failed\n";
+        return 1;
+    }
+
+    pa_context* context = pa_context_new(pa_mainloop_get_api(mainloop), "milkdrop-ddp-list");
+    if (context == nullptr) {
+        pa_mainloop_free(mainloop);
+        std::cout << "PulseAudio/PipeWire: context create failed\n";
+        return 1;
+    }
+
+    pa_context_set_state_callback(
+        context,
+        [](pa_context* ctx, void* userdata) {
+            auto* st = static_cast<ListState*>(userdata);
+            switch (pa_context_get_state(ctx)) {
+            case PA_CONTEXT_READY: {
+                pa_operation* server_op = pa_context_get_server_info(
+                    ctx,
+                    [](pa_context* /*c*/, const pa_server_info* info, void* ud) {
+                        auto* s = static_cast<ListState*>(ud);
+                        if (info != nullptr && info->default_source_name != nullptr) {
+                            s->default_source = info->default_source_name;
+                        }
+                        s->got_server = true;
+                    },
+                    st);
+                if (server_op != nullptr) {
+                    pa_operation_unref(server_op);
+                } else {
+                    st->got_server = true;
+                }
+
+                pa_operation* list_op = pa_context_get_source_info_list(
+                    ctx,
+                    [](pa_context* /*c*/, const pa_source_info* info, int eol, void* ud) {
+                        auto* s = static_cast<ListState*>(ud);
+                        if (eol) {
+                            s->got_sources = true;
+                            return;
+                        }
+                        if (info == nullptr || info->name == nullptr) {
+                            return;
+                        }
+                        SourceRow row;
+                        row.name = info->name;
+                        if (info->description != nullptr) {
+                            row.description = info->description;
+                        }
+                        row.monitor = info->monitor_of_sink != PA_INVALID_INDEX;
+                        s->sources.push_back(std::move(row));
+                    },
+                    st);
+                if (list_op != nullptr) {
+                    pa_operation_unref(list_op);
+                } else {
+                    st->failed = true;
+                    st->got_sources = true;
+                }
+                break;
+            }
+            case PA_CONTEXT_FAILED:
+            case PA_CONTEXT_TERMINATED:
+                st->failed = true;
+                st->got_server = true;
+                st->got_sources = true;
+                break;
+            default:
+                break;
+            }
+        },
+        &state);
+
+    if (pa_context_connect(context, nullptr, PA_CONTEXT_NOFLAGS, nullptr) < 0) {
+        std::cout << "PulseAudio/PipeWire: connect failed ("
+                  << pa_strerror(pa_context_errno(context))
+                  << "). Is the daemon running?\n";
+        pa_context_unref(context);
+        pa_mainloop_free(mainloop);
+        return 1;
+    }
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (!(state.got_server && state.got_sources)) {
+        if (std::chrono::steady_clock::now() >= deadline) {
+            state.failed = true;
+            break;
+        }
+        if (pa_mainloop_iterate(mainloop, 1, nullptr) < 0) {
+            state.failed = true;
+            break;
+        }
+    }
+
+    pa_context_disconnect(context);
+    pa_context_unref(context);
+    pa_mainloop_free(mainloop);
+
+    std::cout << "PulseAudio/PipeWire record sources\n"
+              << "(--audio pulse | --audio pulse:NAME)\n\n";
+    if (state.failed && state.sources.empty()) {
+        std::cout << "  (unavailable)\n\n";
+        return 1;
+    }
+    if (!state.default_source.empty()) {
+        std::cout << "default: " << state.default_source << "\n\n";
+    }
+    if (state.sources.empty()) {
+        std::cout << "  (no record sources)\n\n";
+        return 0;
+    }
+    for (const auto& src : state.sources) {
+        const bool is_default = !state.default_source.empty() && src.name == state.default_source;
+        std::cout << (is_default ? "* " : "  ") << src.name;
+        if (!src.description.empty()) {
+            std::cout << "\n    " << src.description;
+        }
+        if (src.monitor) {
+            std::cout << "  [monitor]";
+        }
+        if (is_default) {
+            std::cout << "  [default]";
+        }
+        std::cout << "\n";
+    }
+    std::cout << "\n";
+    return 0;
+}
+#endif
+
+#ifdef HAVE_ALSA
+int list_alsa_devices()
+{
+    std::cout << "ALSA capture devices\n"
+              << "(--audio alsa | --audio alsa:DEVICE)\n\n";
+    std::cout << "* default\n    ALSA default capture PCM\n";
+
+    void** hints = nullptr;
+    if (snd_device_name_hint(-1, "pcm", &hints) < 0 || hints == nullptr) {
+        std::cout << "  (snd_device_name_hint failed)\n\n";
+        return 1;
+    }
+
+    int count = 1;  // default
+    for (void** h = hints; *h != nullptr; ++h) {
+        char* name = snd_device_name_get_hint(*h, "NAME");
+        char* desc = snd_device_name_get_hint(*h, "DESC");
+        char* ioid = snd_device_name_get_hint(*h, "IOID");
+
+        // NULL IOID means bidirectional; skip pure Output devices.
+        const bool input_ok = (ioid == nullptr) || (std::strcmp(ioid, "Input") == 0);
+        if (name != nullptr && input_ok && std::strcmp(name, "default") != 0 &&
+            std::strcmp(name, "null") != 0) {
+            std::cout << "  " << name;
+            if (desc != nullptr && desc[0] != '\0') {
+                // DESC may contain newlines; print first line only for compactness.
+                std::string d(desc);
+                const auto nl = d.find('\n');
+                if (nl != std::string::npos) {
+                    d.resize(nl);
+                }
+                std::cout << "\n    " << d;
+            }
+            std::cout << "\n";
+            ++count;
+        }
+
+        free(name);
+        free(desc);
+        free(ioid);
+    }
+    snd_device_name_free_hint(hints);
+
+    std::cout << "\n" << count << " ALSA device(s). Prefer plughw:… when the card "
+              << "needs rate conversion.\n\n";
+    return 0;
+}
 #endif
 
 }  // namespace
@@ -232,13 +888,61 @@ std::unique_ptr<AudioSource> make_audio_source(const std::string& spec, int samp
     if (spec.rfind("file:", 0) == 0) {
         return std::make_unique<WavFileAudio>(spec.substr(5));
     }
-    if (spec == "pulse") {
+    if (spec == "pulse" || spec.rfind("pulse:", 0) == 0) {
 #ifdef HAVE_PULSE
-        return std::make_unique<PulseAudio>(sample_rate);
+        std::string device;
+        if (spec.rfind("pulse:", 0) == 0) {
+            device = spec.substr(6);
+        }
+        return std::make_unique<PulseAudio>(sample_rate, std::move(device));
 #else
         throw std::runtime_error("this build has no PulseAudio support");
 #endif
     }
-    throw std::runtime_error("unknown --audio spec: " + spec +
-                             " (use sine, pulse, file:PATH, or stdin)");
+    if (spec == "alsa" || spec.rfind("alsa:", 0) == 0) {
+#ifdef HAVE_ALSA
+        std::string device;
+        if (spec.rfind("alsa:", 0) == 0) {
+            device = spec.substr(5);
+        }
+        return std::make_unique<AlsaAudio>(sample_rate, std::move(device));
+#else
+        throw std::runtime_error("this build has no ALSA support");
+#endif
+    }
+    throw std::runtime_error(
+        "unknown --audio spec: " + spec +
+        " (use sine, pulse, pulse:SOURCE, alsa, alsa:DEVICE, file:PATH, or stdin)");
+}
+
+int list_audio_devices()
+{
+    std::cout << "Built-in\n"
+              << "  sine                 generated test tone\n"
+              << "  file:PATH            loop a 16-bit PCM WAV\n"
+              << "  stdin                raw stereo s16le at --sample-rate\n\n";
+
+    int rc = 0;
+#ifdef HAVE_PULSE
+    if (list_pulse_sources() != 0) {
+        rc = 1;
+    }
+#else
+    std::cout << "PulseAudio/PipeWire: not compiled in (install libpulse-dev and rebuild)\n\n";
+#endif
+
+#ifdef HAVE_ALSA
+    if (list_alsa_devices() != 0) {
+        rc = 1;
+    }
+#else
+    std::cout << "ALSA: not compiled in (install libasound2-dev and rebuild)\n\n";
+#endif
+
+    std::cout << "Examples:\n"
+              << "  milkdrop-ddp --audio pulse …\n"
+              << "  milkdrop-ddp --audio pulse:SOURCE …\n"
+              << "  milkdrop-ddp --audio alsa …\n"
+              << "  milkdrop-ddp --audio alsa:plughw:1,0 …\n";
+    return rc;
 }

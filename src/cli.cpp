@@ -20,13 +20,16 @@ void print_usage()
         << "  --preset-path DIR        Recursively scan for .milk presets (repeatable)\n"
         << "  --texture-path DIR       Texture search path (repeatable)\n"
         << "  --preset FILE|idle://    Load one preset instead of cycling the playlist\n"
-        << "  --audio SPEC             sine | pulse | file:PATH | stdin (default sine)\n"
+        << "  --audio SPEC             sine | pulse | pulse:SOURCE | alsa | alsa:DEVICE\n"
+        << "                           | file:PATH | stdin  (default sine)\n"
+        << "  --list-audio             List Pulse and ALSA capture devices and exit\n"
         << "  --sample-rate N          PCM sample rate for sine/stdin (default 44100)\n"
         << "  --frames N               Render N frames then exit (0 = until SIGINT)\n"
         << "  --dump-ppm FILE          Write the last RGB frame as a PPM image\n"
         << "  --software-gl            Force Mesa llvmpipe (no GPU, no display)\n"
         << "  --no-shuffle             Play presets in directory order\n"
-        << "  --quiet                  Do not print per-frame status\n"
+        << "  --quiet                  Suppress startup status and progress\n"
+        << "  --progress               Print a frame counter on stderr (off by default)\n"
         << "  --set KEY=VALUE          projectM property (repeatable). Keys:\n"
         << "                           beat_sensitivity, hard_cut_duration,\n"
         << "                           hard_cut_enabled, hard_cut_sensitivity,\n"
@@ -127,6 +130,10 @@ Config parse_args(int argc, char** argv)
             cfg.shuffle = false;
         } else if (std::strcmp(a, "--quiet") == 0) {
             cfg.quiet = true;
+        } else if (std::strcmp(a, "--progress") == 0) {
+            cfg.progress = true;
+        } else if (std::strcmp(a, "--list-audio") == 0) {
+            cfg.list_audio = true;
         } else if (std::strcmp(a, "--set") == 0) {
             const std::string kv = require_value(i, argc, argv, a);
             const auto eq = kv.find('=');
