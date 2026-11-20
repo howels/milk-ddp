@@ -40,8 +40,10 @@ DOCKER      ?= docker
 DOCKERFILE_DEBIAN ?= Dockerfile.debian
 DOCKERFILE_ALPINE ?= Dockerfile.alpine
 
+VERSION ?=
+
 .PHONY: all build reconfigure clean distclean validate help \
-        vendor-projectm docker docker-debian docker-alpine docker-run
+        vendor-projectm docker docker-debian docker-alpine docker-run release
 
 all: build
 
@@ -59,7 +61,9 @@ help:
 		'make docker           Build Alpine (:latest) and Debian images' \
 		'make docker-alpine    Build $(IMAGE_ALPINE) and tag :latest (preferred)' \
 		'make docker-debian    Build $(IMAGE_DEBIAN)' \
-		'make docker-run       Run $(IMAGE_LATEST) --help on the host network'
+		'make docker-run       Run $(IMAGE_LATEST) --help on the host network' \
+		'make release VERSION=vX.Y.Z  Tag, push, and watch the GitHub Release workflow' \
+		'REPUBLISH=1 make release VERSION=vX.Y.Z  Recreate and force-push an existing tag'
 
 $(BUILD_DIR)/build.ninja $(BUILD_DIR)/Makefile: CMakeLists.txt
 	$(CMAKE) -S . -B $(BUILD_DIR) $(CMAKE_ARGS)
@@ -104,3 +108,14 @@ docker-debian:
 docker-run:
 	$(DOCKER) run --rm --network host $(IMAGE_LATEST) \
 		--software-gl --preset-path /usr/share/milk-ddp/presets --help
+
+# Annotated tag + push; Actions builds amd64/arm64 binaries and GHCR images.
+# Example: make release VERSION=v0.1.2
+# Republish: REPUBLISH=1 make release VERSION=v0.1.2
+release:
+	@if [ -z "$(VERSION)" ]; then \
+		printf 'usage: make release VERSION=vX.Y.Z\n' >&2; \
+		printf '       REPUBLISH=1 make release VERSION=vX.Y.Z\n' >&2; \
+		exit 1; \
+	fi
+	bash scripts/release.sh $(VERSION)

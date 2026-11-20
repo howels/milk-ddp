@@ -7,9 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag name to build (for manual runs without a push)"
-        required: false
+        description: "Tag name to build/publish (e.g. v0.1.2)"
+        required: true
         default: ""
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -32,9 +36,6 @@ jobs:
       version: ${{ steps.ver.outputs.version }}
       projectm: ${{ steps.projectm.outputs.tag }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Version
         id: ver
         run: |
@@ -43,8 +44,31 @@ jobs:
           else
             TAG="${GITHUB_REF_NAME}"
           fi
+          case "${TAG}" in
+            v[0-9]*) ;;
+            *)
+              echo "error: tag must look like v0.1.2 (got: ${TAG})" >&2
+              exit 1
+              ;;
+          esac
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.ver.outputs.tag }}
+
+      - name: Require tag on main
+        run: |
+          COMMIT="$(git rev-parse HEAD)"
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "${COMMIT}" origin/main; then
+            echo "error: ${COMMIT} is not on origin/main; refuse release for ${{ steps.ver.outputs.tag }}" >&2
+            exit 1
+          fi
+          echo "OK: ${{ steps.ver.outputs.tag }} @ ${COMMIT} is reachable from origin/main"
 
       - name: Install dependencies
         run: |
@@ -84,7 +108,7 @@ jobs:
             "libprojectM ${{ steps.projectm.outputs.tag }}" \
             "arch ${{ matrix.arch }}" \
             "built-on $(uname -srm)" \
-            "commit ${GITHUB_SHA}" \
+            "commit $(git rev-parse HEAD)" \
             > "${STAGE}/BUILD_INFO.txt"
           tar -czf "${STAGE}.tar.gz" "${STAGE}"
 
@@ -107,7 +131,7 @@ jobs:
             | gzip > "milk-ddp-${{ steps.ver.outputs.version }}-debian-${{ matrix.arch }}.tar.gz"
 
       - name: Log in to GHCR
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -115,7 +139,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push arch images to GHCR
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         run: |
           docker push "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}-alpine-${{ matrix.arch }}"
           docker push "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}-${{ matrix.arch }}"
@@ -134,7 +158,7 @@ jobs:
   release:
     name: publish-release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
     steps:
       - name: Download all artifacts
@@ -169,9 +193,11 @@ jobs:
             "${REPO}:${TAG}-alpine-amd64" \
             "${REPO}:${TAG}-alpine-arm64"
 
-      - name: Create GitHub Release
+      - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          overwrite_files: true
           generate_release_notes: true
           body: |
             ## milk-ddp ${{ needs.build.outputs.tag }}

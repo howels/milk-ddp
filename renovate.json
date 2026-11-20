@@ -3,13 +3,14 @@
   "extends": [
     "config:recommended",
     ":semanticCommits",
-    ":dependencyDashboard"
+    ":dependencyDashboard",
+    "schedule:weekly"
   ],
   "labels": ["dependencies"],
   "prConcurrentLimit": 4,
   "packageRules": [
     {
-      "description": "Group GitHub Actions updates",
+      "description": "Group GitHub Actions updates (including Renovate itself)",
       "matchManagers": ["github-actions"],
       "groupName": "github-actions"
     },

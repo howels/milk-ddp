@@ -296,18 +296,57 @@ GitHub-compatible workflows live under `.github/workflows/`:
 | Workflow | Trigger | Action |
 |---|---|---|
 | `ci.yml` | push / PR | Build and validate on amd64 and arm64; build Alpine and Debian images for both arches |
-| `release.yml` | tag `v*` | Host tarballs and `docker save` archives for amd64 and arm64; push multi-arch images to `ghcr.io/howels/milk-ddp` (**Alpine** preferred: `:vX` / `:latest`; Debian `:vX-debian`) |
+| `release.yml` | tag `v*` (must be on `main`); also `workflow_dispatch` | Host tarballs and `docker save` archives for amd64 and arm64; push multi-arch images to `ghcr.io/howels/milk-ddp` (**Alpine** preferred: `:vX` / `:latest`; Debian `:vX-debian`). Re-pushing the same tag republishes assets and GHCR tags. |
+| `renovate.yml` | weekly cron (Monday 06:00 UTC) and `workflow_dispatch` | Self-hosted Renovate opens PRs for Actions, Docker base images, and the libprojectM FetchContent tag |
 
-Create a release:
+### Cutting a release
+
+From a clean `main` tree (after commits are pushed or will be pushed by the script):
 
 ```bash
-git tag -a v0.1.0 -m "v0.1.0"
-git push origin v0.1.0
+make release VERSION=v0.1.2
+# equivalent: scripts/release.sh v0.1.2
+```
+
+`scripts/release.sh` runs `make validate`, keeps the CMake `project(… VERSION …)`
+in sync with the tag, creates an annotated tag, pushes it to `origin`, and watches
+the Release workflow until host tarballs and GHCR images are published. The workflow
+refuses tags whose commit is not reachable from `origin/main`.
+
+Useful environment flags: `SKIP_VALIDATE=1`, `WATCH=0`, `RELEASE_ALLOW_DIRTY=1`.
+
+To rebuild and republish an existing tag from current `main`:
+
+```bash
+REPUBLISH=1 make release VERSION=v0.1.2
+```
+
+That deletes the local and remote tag, recreates an annotated tag on `HEAD`,
+force-pushes only that tag, and lets `release.yml` overwrite same-named release
+assets and GHCR tags. Manual re-run without moving the tag: Actions → Release →
+Run workflow → enter the tag name.
+
+Manual first-time tag:
+
+```bash
+git tag -a v0.1.2 -m "v0.1.2"
+git push origin v0.1.2
 ```
 
 ### Renovate
 
-[`renovate.json`](renovate.json) tracks GitHub Actions, Docker base images (`debian`, `alpine`), and the libprojectM git tag in `CMakeLists.txt` / `Makefile` (`MILK_DDP_PROJECTM_GIT_TAG` / `vendor-projectm`). Enable the [Renovate GitHub App](https://github.com/apps/renovate) on the repository (or run Renovate in your own CI).
+[`renovate.yml`](.github/workflows/renovate.yml) runs Renovate weekly against this
+repository. [`renovate.json`](renovate.json) tracks:
+
+- GitHub Actions used in workflows (including `renovatebot/github-action` itself)
+- Docker base images in `Dockerfile`, `Dockerfile.alpine`, and `Dockerfile.debian`
+- The libprojectM git tag in `CMakeLists.txt` / `Makefile` (`MILK_DDP_PROJECTM_GIT_TAG` / `vendor-projectm`)
+
+**Prerequisite:** add a repository secret `RENOVATE_TOKEN` — a fine-grained PAT (or
+GitHub App installation token) with permission to read the repo and open pull
+requests (include `workflows` if Renovate should bump Actions that change workflow
+files). Then run the Renovate workflow once via `workflow_dispatch`, or wait for
+the Monday cron.
 
 ## Validate without a matrix or a display
 
