@@ -178,14 +178,39 @@ If no `--preset` and no `.milk` files are found, the idle logo preset is loaded 
 
 Two images are kept: **Alpine** (`Dockerfile.alpine`, preferred for releases) and **Debian** (`Dockerfile.debian`). The root `Dockerfile` matches the Debian recipe for `docker build .` convenience; release tags and `make docker` set `:latest` to Alpine.
 
+### Local build
+
 ```bash
 make docker              # alpine (:latest) and debian
 make docker-alpine       # preferred release image → :alpine and :latest
 make docker-debian       # → :debian
 ```
 
+### GHCR (release images)
+
+Tagged releases push multi-arch (amd64 + arm64) images to GitHub Container Registry:
+
+| Tag | Image |
+|---|---|
+| Preferred / newest | `ghcr.io/howels/milk-ddp:latest` |
+| Version (Alpine) | `ghcr.io/howels/milk-ddp:vX.Y.Z` |
+| Alpine explicitly | `ghcr.io/howels/milk-ddp:vX.Y.Z-alpine` |
+| Debian | `ghcr.io/howels/milk-ddp:vX.Y.Z-debian` |
+
+Per-architecture digests also exist as `…:vX.Y.Z-alpine-amd64`, `…-alpine-arm64`, `…-debian-amd64`, and `…-debian-arm64` (used to build the multi-arch manifests).
+
+Package page: https://github.com/howels/milk-ddp/pkgs/container/milk-ddp
+
 ```bash
-docker run --rm --network host milk-ddp:latest \
+docker pull ghcr.io/howels/milk-ddp:latest
+docker pull ghcr.io/howels/milk-ddp:v0.1.1
+docker pull ghcr.io/howels/milk-ddp:v0.1.1-debian
+```
+
+### Run
+
+```bash
+docker run --rm --network host ghcr.io/howels/milk-ddp:latest \
   --software-gl --width 128 --height 128 --fps 30 \
   --ddp 192.168.1.50:4048 \
   --preset-path /usr/share/milk-ddp/presets \
@@ -199,8 +224,10 @@ Ship extra preset packs as a volume (do not bake third-party packs into the imag
 ```bash
 docker run --rm --network host \
   -v /opt/presets/cream-of-the-crop:/presets:ro \
-  milk-ddp:alpine --software-gl --ddp 192.168.1.50 --preset-path /presets
+  ghcr.io/howels/milk-ddp:latest --software-gl --ddp 192.168.1.50 --preset-path /presets
 ```
+
+Release assets also include `docker save` tarballs (`*-alpine-*.tar.gz`, `*-debian-*.tar.gz`) for offline `docker load` when GHCR is unreachable.
 
 ## Presets
 
@@ -269,7 +296,7 @@ GitHub-compatible workflows live under `.github/workflows/`:
 | Workflow | Trigger | Action |
 |---|---|---|
 | `ci.yml` | push / PR | Build and validate on amd64 and arm64; build Alpine and Debian images for both arches |
-| `release.yml` | tag `v*` | Host tarballs and container archives for amd64 and arm64; push multi-arch images to GHCR. **Alpine** is preferred (`:vX` / `:latest`); Debian is `:vX-debian` |
+| `release.yml` | tag `v*` | Host tarballs and `docker save` archives for amd64 and arm64; push multi-arch images to `ghcr.io/howels/milk-ddp` (**Alpine** preferred: `:vX` / `:latest`; Debian `:vX-debian`) |
 
 Create a release:
 
