@@ -1,8 +1,15 @@
 # Presets (GPL-3.0-or-later)
 
-Root samples and `lowres/` are **original GPL-3.0-or-later** works for milk-ddp
-LED matrices (**64×64–256×256**): thick waves, high contrast, strong beat
-coupling, no texture dependencies. They are not copies of Cream of the Crop.
+Root samples, `lowres/`, `fractal/`, `surfaces/`, `neon/`, `jelly/`, and
+`rush/` are **original GPL-3.0-or-later** works for milk-ddp LED matrices.
+`lowres/` targets **64×64–256×256** with thick waves and strong beat
+coupling. `fractal/` is MilkDrop 2 shader fractals (classic sets, nature /
+landscape, and zoom-rush dives). `surfaces/` maps waveform/spectrum
+textures onto fake-3D convex, concave, and landscape geometry (128×128+).
+`neon/` is high-saturation neon grids, tubes, lasers, signage, and circuit
+traces. `jelly/` is gelatinous relief / machine-code scroll presets
+inspired by Butterchurn Machine Code (Jelly) aesthetics. `rush/` is
+forward-zoom tunnels built from waveform-driven geometric patterns.
 
 `modern/` is a **MIT** curated selection of post-classic MilkDrop 2 presets
 (shaders, mock-3D, fractals) from M0Rf30 — see `modern/README.md`.
@@ -14,6 +21,11 @@ coupling, no texture dependencies. They are not copies of Cream of the Crop.
 | `milk-ddp-bars.milk` | First-light / CI waveform (GPL) |
 | `milk-ddp-tunnel.milk` | Soft warp sample (GPL) |
 | `lowres/` | Twelve GPL presets for 64×64–256×256 matrices |
+| `fractal/` | Twelve GPL MilkDrop 2 fractal presets (classic, nature, zoom-rush) |
+| `surfaces/` | Four GPL waveform→texture→3D surface presets (sphere, bowl, hills, torus) |
+| `neon/` | Five GPL vivid neon pattern presets (grid, tubes, lasers, signage, circuit) |
+| `jelly/` | Five GPL jelly relief / machine-code scroll presets |
+| `rush/` | Twelve GPL forward-zoom waveform geometry / flyover presets |
 | `modern/` | Nine MIT MilkDrop 2 / mock-3D presets (M0Rf30) |
 | `LICENSE` | GPL notice for the original in-tree presets |
 
@@ -58,7 +70,7 @@ prefer a denser third-party pack plus textures.
 # Modern MilkDrop 2 / mock-3D pack (128×128+)
 ./build/milk-ddp --width 128 --height 128 \
   --preset-path ./presets/modern \
-  --shuffle-delay 45 \
+  --switch-delay 45 \
   --ddp 192.168.1.50:4048 --audio pulse
 
 # Entire in-tree tree (GPL samples + lowres + modern)
@@ -67,7 +79,7 @@ prefer a denser third-party pack plus textures.
   --ddp 192.168.1.50:4048 --audio pulse
 ```
 
-`--preset-duration` / `--shuffle-delay` set how long each playlist preset is
+`--preset-duration` / `--switch-delay` set how long each playlist preset is
 shown before the next transition (libprojectM default is 30 seconds).
 
 ## Larger third-party packs (optional, not GPL-cleared as a set)

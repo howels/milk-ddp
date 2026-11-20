@@ -27,12 +27,13 @@ void print_usage()
         << "  --frames N               Render N frames then exit (0 = until SIGINT)\n"
         << "  --dump-ppm FILE          Write the last RGB frame as a PPM image\n"
         << "  --software-gl            Force Mesa llvmpipe (no GPU, no display)\n"
-        << "  --no-shuffle             Play presets in directory order\n"
+        << "  --shuffle                Randomise playlist selection (off by default)\n"
+        << "  --no-shuffle             Play presets in alphabetical path order (default)\n"
         << "  --preset-duration SEC    Seconds each playlist preset is shown\n"
         << "                           before the next transition (default 30)\n"
-        << "  --shuffle-delay SEC      Alias for --preset-duration\n"
-        << "  --quiet                  Suppress startup status and progress\n"
-        << "  --progress               Print a frame counter on stderr (off by default)\n"
+        << "  --switch-delay SEC       Alias for --preset-duration\n"
+        << "  --quiet                  Suppress startup status, preset lines, and progress\n"
+        << "  --progress               Print periodic status with measured fps (off by default)\n"
         << "  --set KEY=VALUE          projectM property (repeatable). Keys:\n"
         << "                           beat_sensitivity, hard_cut_duration,\n"
         << "                           hard_cut_enabled, hard_cut_sensitivity,\n"
@@ -140,14 +141,20 @@ Config parse_args(int argc, char** argv)
             cfg.dump_ppm = require_value(i, argc, argv, a);
         } else if (std::strcmp(a, "--software-gl") == 0) {
             cfg.software_gl = true;
+        } else if (std::strcmp(a, "--shuffle") == 0) {
+            cfg.shuffle = true;
         } else if (std::strcmp(a, "--no-shuffle") == 0) {
             cfg.shuffle = false;
         } else if (std::strcmp(a, "--preset-duration") == 0 ||
+                   std::strcmp(a, "--switch-delay") == 0 ||
                    std::strcmp(a, "--shuffle-delay") == 0) {
+            // --shuffle-delay remains accepted as a deprecated alias.
             cfg.preset_duration =
                 parse_positive_seconds(require_value(i, argc, argv, a), a);
         } else if (starts_with(a, "--preset-duration=")) {
             cfg.preset_duration = parse_positive_seconds(a + 18, "--preset-duration");
+        } else if (starts_with(a, "--switch-delay=")) {
+            cfg.preset_duration = parse_positive_seconds(a + 15, "--switch-delay");
         } else if (starts_with(a, "--shuffle-delay=")) {
             cfg.preset_duration = parse_positive_seconds(a + 16, "--shuffle-delay");
         } else if (std::strcmp(a, "--quiet") == 0) {

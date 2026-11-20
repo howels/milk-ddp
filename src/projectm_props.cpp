@@ -91,7 +91,7 @@ void apply_projectm_properties(projectm_handle pm, projectm_playlist_handle play
     if (playlist != nullptr) {
         projectm_playlist_set_shuffle(playlist, cfg.shuffle);
     }
-    // --set can override --preset-duration / --shuffle-delay.
+    // --set can override --preset-duration / --switch-delay.
     for (const auto& kv : cfg.properties) {
         apply_one_property(pm, playlist, kv.first, kv.second);
     }

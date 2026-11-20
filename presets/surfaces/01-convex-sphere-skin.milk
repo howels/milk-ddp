@@ -1,0 +1,277 @@
+[preset00]
+MILKDROP_PRESET_VERSION=201
+PSVERSION=2
+PSVERSION_WARP=2
+PSVERSION_COMP=2
+fRating=4.500000
+fGammaAdj=1.700000
+fDecay=0.975000
+fVideoEchoZoom=1.000000
+fVideoEchoAlpha=0.000000
+nVideoEchoOrientation=0
+nWaveMode=5
+bAdditiveWaves=1
+bWaveDots=0
+bWaveThick=1
+bModWaveAlphaByVolume=0
+bMaximizeWaveColor=1
+bTexWrap=1
+bDarkenCenter=0
+bRedBlueStereo=0
+bBrighten=0
+bDarken=0
+bSolarize=0
+bInvert=0
+fWaveAlpha=0.550000
+fWaveScale=1.150000
+fWaveSmoothing=0.650000
+fWaveParam=0.000000
+fModWaveAlphaStart=0.750000
+fModWaveAlphaEnd=0.950000
+fWarpAnimSpeed=1.000000
+fWarpScale=1.000000
+fZoomExponent=1.000000
+fShader=0.000000
+zoom=1.000000
+rot=0.000000
+cx=0.500000
+cy=0.500000
+dx=0.000000
+dy=0.000000
+warp=0.000000
+sx=1.000000
+sy=1.000000
+wave_r=0.500000
+wave_g=0.700000
+wave_b=1.000000
+wave_x=0.500000
+wave_y=0.500000
+ob_size=0.000000
+ob_r=0.000000
+ob_g=0.000000
+ob_b=0.000000
+ob_a=0.000000
+ib_size=0.000000
+ib_r=0.000000
+ib_g=0.000000
+ib_b=0.000000
+ib_a=0.000000
+nMotionVectorsX=0.000000
+nMotionVectorsY=0.000000
+mv_dx=0.000000
+mv_dy=0.000000
+mv_l=0.000000
+mv_r=0.000000
+mv_g=0.000000
+mv_b=0.000000
+mv_a=0.000000
+wavecode_0_enabled=1
+wavecode_0_samples=512
+wavecode_0_sep=0
+wavecode_0_bSpectrum=1
+wavecode_0_bUseDots=0
+wavecode_0_bDrawThick=1
+wavecode_0_bAdditive=1
+wavecode_0_scaling=1.200000
+wavecode_0_smoothing=0.450000
+wavecode_0_r=1.000000
+wavecode_0_g=1.000000
+wavecode_0_b=1.000000
+wavecode_0_a=1.000000
+wavecode_1_enabled=1
+wavecode_1_samples=512
+wavecode_1_sep=0
+wavecode_1_bSpectrum=0
+wavecode_1_bUseDots=0
+wavecode_1_bDrawThick=1
+wavecode_1_bAdditive=1
+wavecode_1_scaling=1.000000
+wavecode_1_smoothing=0.550000
+wavecode_1_r=1.000000
+wavecode_1_g=1.000000
+wavecode_1_b=1.000000
+wavecode_1_a=1.000000
+wavecode_2_enabled=1
+wavecode_2_samples=512
+wavecode_2_sep=0
+wavecode_2_bSpectrum=1
+wavecode_2_bUseDots=0
+wavecode_2_bDrawThick=1
+wavecode_2_bAdditive=1
+wavecode_2_scaling=0.900000
+wavecode_2_smoothing=0.500000
+wavecode_2_r=1.000000
+wavecode_2_g=1.000000
+wavecode_2_b=1.000000
+wavecode_2_a=0.900000
+wavecode_3_enabled=0
+wave_0_per_point1=x = sample * 0.96 + 0.02;
+wave_0_per_point2=y = 0.06 + value * 0.55;
+wave_0_per_point3=r = 0.15 + 0.95 * bass_att + 0.55 * sample;
+wave_0_per_point4=g = 0.15 + 0.95 * mid_att + 0.35 * value;
+wave_0_per_point5=b = 0.20 + 0.95 * treb_att + 0.40 * (1 - sample);
+wave_0_per_point6=a = 0.65 + 0.35 * value;
+wave_1_per_point1=x = sample * 0.96 + 0.02;
+wave_1_per_point2=y = 0.94 - value * 0.40;
+wave_1_per_point3=r = 0.70 + 0.30 * bass;
+wave_1_per_point4=g = 0.25 + 0.55 * mid + 0.20 * value;
+wave_1_per_point5=b = 0.15 + 0.70 * treb;
+wave_1_per_point6=a = 0.50 + 0.50 * value;
+wave_2_per_point1=x = 0.50 + 0.48 * cos(sample * 6.2832);
+wave_2_per_point2=y = 0.50 + 0.48 * sin(sample * 6.2832) * (0.35 + 0.65 * value);
+wave_2_per_point3=r = 0.20 + 0.80 * treb_att + 0.40 * sample;
+wave_2_per_point4=g = 0.20 + 0.70 * mid_att;
+wave_2_per_point5=b = 0.35 + 0.65 * bass_att + 0.35 * (1 - sample);
+wave_2_per_point6=a = 0.40 + 0.55 * value;
+per_frame_1=dt = min(max(time - tl, 0.004), 0.08); tl = time;
+per_frame_2=bm = bm + (bass - bm) * (1 - exp(-dt / 0.55));
+per_frame_3=bd = bd + (abs(bass - bm) - bd) * (1 - exp(-dt / 1.8));
+per_frame_4=hit = min(max(((bass - bm) / max(bd, 0.07) - 0.55) / 1.2, 0), 1);
+per_frame_5=kick = max(kick * pow(0.84, 60 * dt), hit);
+per_frame_6=k60 = pow(0.93, 60 * dt);
+per_frame_7=sb = sb * k60 + bass_att * (1 - k60);
+per_frame_8=sm = sm * k60 + mid_att * (1 - k60);
+per_frame_9=st = st * k60 + treb_att * (1 - k60);
+per_frame_10=ang = ang + dt * (0.1800 + 0.2800 * st + 0.08 * kick);
+per_frame_11=scroll = scroll + dt * (0.1800 + 0.2500 * sb + 0.15 * st);
+per_frame_12=energy = min(sb + sm + st, 2.5);
+per_frame_13=hue_shift = 0.5500 + 0.08 * time + 0.12 * st - 0.07 * sb + 0.05 * sm; hue_shift = hue_shift - int(hue_shift);
+per_frame_14=sat_lvl = min(0.55 + 0.30 * energy + 0.15 * kick, 1.1);
+per_frame_15=gain = 0.95 + 0.28 * energy;
+per_frame_16=wave_r = min(0.25 + 0.90 * sb + 0.35 * kick, 1);
+per_frame_17=wave_g = min(0.20 + 0.85 * sm + 0.25 * st, 1);
+per_frame_18=wave_b = min(0.30 + 0.90 * st + 0.20 * sm, 1);
+per_frame_19=q1 = kick; q2 = sb; q3 = sm; q4 = st; q5 = ang;
+per_frame_20=q6 = scroll; q7 = 0.5500; q8 = 0.4000; q9 = 2.0000; q10 = 0.3500;
+per_frame_21=q11 = hue_shift; q12 = sat_lvl; q13 = gain;
+warp_1=`float2 rot2(float2 p, float a)
+warp_2=`{
+warp_3=`  float c = cos(a); float s = sin(a);
+warp_4=`  return float2(c*p.x - s*p.y, s*p.x + c*p.y);
+warp_5=`}
+warp_6=`float3 hue(float h, float sat)
+warp_7=`{
+warp_8=`  float3 k = abs(frac(h + float3(0.0, 0.66667, 0.33333))*6.0 - 3.0) - 1.0;
+warp_9=`  return (1.0 - sat) + sat*saturate(k);
+warp_10=`}
+warp_11=`float3 wave_tex(float2 tc)
+warp_12=`{
+warp_13=`  float2 u = frac(tc);
+warp_14=`  float3 a = tex2D(sampler_main, u).rgb;
+warp_15=`  float3 b = GetBlur1(u);
+warp_16=`  float3 c = GetBlur2(u);
+warp_17=`  return a * 0.50 + b * 0.30 + c * 0.20;
+warp_18=`}
+warp_19=`float3 audio_tint(float u_coord)
+warp_20=`{
+warp_21=`  float h = frac(q11 + u_coord * 0.55 + 0.08 * q4 - 0.05 * q2);
+warp_22=`  float sat = saturate(0.70 + 0.25 * q12 + 0.15 * q1);
+warp_23=`  float3 band = hue(h, sat);
+warp_24=`  float3 warm = float3(1.0, 0.35, 0.08) * q2;
+warp_25=`  float3 midc = float3(0.25, 1.0, 0.35) * q3;
+warp_26=`  float3 cool = float3(0.25, 0.55, 1.0) * q4;
+warp_27=`  return saturate(band * 0.85 + warm * 0.45 + midc * 0.40 + cool * 0.45);
+warp_28=`}
+warp_29=`float3 colourise(float3 tex, float u_coord, float shade)
+warp_30=`{
+warp_31=`  float lum = dot(tex, float3(0.30, 0.59, 0.11));
+warp_32=`  float3 tint = audio_tint(u_coord);
+warp_33=`  float3 col = tint * (0.42 + 1.05 * lum) * shade;
+warp_34=`  col += tint * lum * lum * 0.40;
+warp_35=`  col += float3(1.0, 0.95, 0.9) * pow(lum, 4.0) * q1 * 0.55;
+warp_36=`  col *= q13;
+warp_37=`  return col;
+warp_38=`}
+warp_39=`float3 led_tonemap(float3 col)
+warp_40=`{
+warp_41=`  float lum = max(dot(col, float3(0.30, 0.59, 0.11)), 0.0001);
+warp_42=`  float mapped = 1.0 - exp(-lum * 1.05);
+warp_43=`  mapped = min(mapped, 0.88);
+warp_44=`  return saturate((col / lum) * mapped);
+warp_45=`}
+warp_46=`shader_body
+warp_47=`{
+warp_48=`  float ar = texsize.x * texsize.w;
+warp_49=`  float2 p = (uv - 0.5) * float2(ar, 1.0);
+warp_50=`  float2 suv = uv + float2(-0.0055 - 0.004 * q2 - 0.002 * q4, 0.002 * sin(q6 * 4.0 + uv.y * 9.0));
+warp_51=`  float3 prev = tex2D(sampler_main, suv).rgb;
+warp_52=`  prev = lerp(prev, GetBlur1(suv), 0.12);
+warp_53=`  float2 breathe = p * (0.003 + 0.01 * q1 + 0.004 * q3);
+warp_54=`  float3 ink = tex2D(sampler_main, uv + breathe / float2(ar, 1.0)).rgb;
+warp_55=`  ret = max(prev * (0.90 + 0.03 * q2), ink * (1.0 + 0.18 * q1));
+warp_56=`  ret = max(ret - 0.0012, 0.0);
+warp_57=`}
+comp_1=`float2 rot2(float2 p, float a)
+comp_2=`{
+comp_3=`  float c = cos(a); float s = sin(a);
+comp_4=`  return float2(c*p.x - s*p.y, s*p.x + c*p.y);
+comp_5=`}
+comp_6=`float3 hue(float h, float sat)
+comp_7=`{
+comp_8=`  float3 k = abs(frac(h + float3(0.0, 0.66667, 0.33333))*6.0 - 3.0) - 1.0;
+comp_9=`  return (1.0 - sat) + sat*saturate(k);
+comp_10=`}
+comp_11=`float3 wave_tex(float2 tc)
+comp_12=`{
+comp_13=`  float2 u = frac(tc);
+comp_14=`  float3 a = tex2D(sampler_main, u).rgb;
+comp_15=`  float3 b = GetBlur1(u);
+comp_16=`  float3 c = GetBlur2(u);
+comp_17=`  return a * 0.50 + b * 0.30 + c * 0.20;
+comp_18=`}
+comp_19=`float3 audio_tint(float u_coord)
+comp_20=`{
+comp_21=`  float h = frac(q11 + u_coord * 0.55 + 0.08 * q4 - 0.05 * q2);
+comp_22=`  float sat = saturate(0.70 + 0.25 * q12 + 0.15 * q1);
+comp_23=`  float3 band = hue(h, sat);
+comp_24=`  float3 warm = float3(1.0, 0.35, 0.08) * q2;
+comp_25=`  float3 midc = float3(0.25, 1.0, 0.35) * q3;
+comp_26=`  float3 cool = float3(0.25, 0.55, 1.0) * q4;
+comp_27=`  return saturate(band * 0.85 + warm * 0.45 + midc * 0.40 + cool * 0.45);
+comp_28=`}
+comp_29=`float3 colourise(float3 tex, float u_coord, float shade)
+comp_30=`{
+comp_31=`  float lum = dot(tex, float3(0.30, 0.59, 0.11));
+comp_32=`  float3 tint = audio_tint(u_coord);
+comp_33=`  float3 col = tint * (0.42 + 1.05 * lum) * shade;
+comp_34=`  col += tint * lum * lum * 0.40;
+comp_35=`  col += float3(1.0, 0.95, 0.9) * pow(lum, 4.0) * q1 * 0.55;
+comp_36=`  col *= q13;
+comp_37=`  return col;
+comp_38=`}
+comp_39=`float3 led_tonemap(float3 col)
+comp_40=`{
+comp_41=`  float lum = max(dot(col, float3(0.30, 0.59, 0.11)), 0.0001);
+comp_42=`  float mapped = 1.0 - exp(-lum * 1.05);
+comp_43=`  mapped = min(mapped, 0.88);
+comp_44=`  return saturate((col / lum) * mapped);
+comp_45=`}
+comp_46=`shader_body
+comp_47=`{
+comp_48=`  float ar = texsize.x * texsize.w;
+comp_49=`  float2 p = (uv - 0.5) * float2(ar, 1.0);
+comp_50=`  float ca = cos(q5); float sa = sin(q5);
+comp_51=`  float2 pr = float2(ca * p.x - sa * p.y, sa * p.x + ca * p.y);
+comp_52=`  float sph_r = q8 * (1.35 + 0.18 * q1 + 0.12 * q2);
+comp_53=`  float rr = length(pr);
+comp_54=`  float3 col = audio_tint(uv.x) * 0.03;
+comp_55=`  if (rr < sph_r)
+comp_56=`  {
+comp_57=`    float z = sqrt(max(sph_r * sph_r - rr * rr, 0.0));
+comp_58=`    float3 n = normalize(float3(pr.x, pr.y, z));
+comp_59=`    float2 tuv = float2(atan2(n.y, n.x) * 0.1591549 + 0.5 + q6 * 0.12, n.z * 0.5 + 0.5);
+comp_60=`    float3 tex = wave_tex(tuv * float2(2.4, 1.5) + float2(q6 * 0.4, q4 * 0.1));
+comp_61=`    float ndl = saturate(dot(n, normalize(float3(0.35, 0.55, 0.75))));
+comp_62=`    float fres = pow(1.0 - saturate(n.z), 2.0);
+comp_63=`    float shade = 0.55 + 0.90 * ndl;
+comp_64=`    col = colourise(tex, tuv.x, shade);
+comp_65=`    col += audio_tint(tuv.x + 0.2) * fres * (0.30 + 0.25 * q4);
+comp_66=`    col += float3(1.0, 0.92, 0.80) * fres * fres * q1 * 0.40;
+comp_67=`  }
+comp_68=`  else
+comp_69=`  {
+comp_70=`    float sky = exp(-rr * 1.1);
+comp_71=`    col += audio_tint(uv.x + q6) * sky * (0.05 + 0.08 * q3);
+comp_72=`  }
+comp_73=`  ret = led_tonemap(col);
+comp_74=`}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <EGL/egl.h>
@@ -16,7 +17,7 @@ public:
 
     void create(int width, int height, bool software);
     void bind_default() const;
-    void read_rgb(unsigned char* dest_top_left_rgb) const;
+    void read_rgb(unsigned char* dest_top_left_rgb);
 
     int width() const { return width_; }
     int height() const { return height_; }
@@ -30,4 +31,6 @@ private:
     EGLSurface surface_ = EGL_NO_SURFACE;
     int width_ = 0;
     int height_ = 0;
+    // Reused each frame for GL bottom-up → DDP top-left flip (avoids alloc).
+    std::vector<unsigned char> readback_;
 };

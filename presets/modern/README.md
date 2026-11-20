@@ -26,7 +26,7 @@ double presets are also omitted.
 ```bash
 ./build/milk-ddp --width 128 --height 128 \
   --preset-path ./presets/modern \
-  --shuffle-delay 45 \
+  --switch-delay 45 \
   --ddp 192.168.1.50:4048 --audio pulse
 ```
 

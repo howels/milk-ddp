@@ -1,0 +1,242 @@
+[preset00]
+MILKDROP_PRESET_VERSION=201
+PSVERSION=2
+PSVERSION_WARP=2
+PSVERSION_COMP=2
+fRating=5.000000
+fGammaAdj=1.200000
+fDecay=0.950000
+fVideoEchoZoom=1.000000
+fVideoEchoAlpha=0.000000
+nVideoEchoOrientation=0
+nWaveMode=3
+bAdditiveWaves=1
+bWaveDots=0
+bWaveThick=1
+bModWaveAlphaByVolume=0
+bMaximizeWaveColor=1
+bTexWrap=1
+bDarkenCenter=0
+bRedBlueStereo=0
+bBrighten=0
+bDarken=0
+bSolarize=0
+bInvert=0
+fWaveAlpha=0.600000
+fWaveScale=1.100000
+fWaveSmoothing=0.500000
+fWaveParam=0.000000
+fModWaveAlphaStart=0.750000
+fModWaveAlphaEnd=0.950000
+fWarpAnimSpeed=1.000000
+fWarpScale=1.000000
+fZoomExponent=1.000000
+fShader=0.000000
+zoom=1.000000
+rot=0.000000
+cx=0.500000
+cy=0.500000
+dx=0.000000
+dy=0.000000
+warp=0.000000
+sx=1.000000
+sy=1.000000
+wave_r=1.000000
+wave_g=0.200000
+wave_b=0.900000
+wave_x=0.500000
+wave_y=0.500000
+ob_size=0.010000
+ob_r=0.000000
+ob_g=0.000000
+ob_b=0.000000
+ob_a=0.000000
+ib_size=0.015000
+ib_r=0.000000
+ib_g=1.000000
+ib_b=1.000000
+ib_a=0.350000
+nMotionVectorsX=0.000000
+nMotionVectorsY=0.000000
+mv_dx=0.000000
+mv_dy=0.000000
+mv_l=0.000000
+mv_r=0.000000
+mv_g=0.000000
+mv_b=0.000000
+mv_a=0.000000
+wavecode_0_enabled=1
+wavecode_0_samples=512
+wavecode_0_sep=0
+wavecode_0_bSpectrum=1
+wavecode_0_bUseDots=0
+wavecode_0_bDrawThick=1
+wavecode_0_bAdditive=1
+wavecode_0_scaling=1.400000
+wavecode_0_smoothing=0.350000
+wavecode_0_r=1.000000
+wavecode_0_g=0.100000
+wavecode_0_b=0.900000
+wavecode_0_a=1.000000
+wavecode_1_enabled=1
+wavecode_1_samples=512
+wavecode_1_sep=0
+wavecode_1_bSpectrum=0
+wavecode_1_bUseDots=0
+wavecode_1_bDrawThick=1
+wavecode_1_bAdditive=1
+wavecode_1_scaling=1.100000
+wavecode_1_smoothing=0.400000
+wavecode_1_r=0.100000
+wavecode_1_g=1.000000
+wavecode_1_b=0.900000
+wavecode_1_a=1.000000
+wavecode_2_enabled=1
+wavecode_2_samples=256
+wavecode_2_sep=0
+wavecode_2_bSpectrum=1
+wavecode_2_bUseDots=1
+wavecode_2_bDrawThick=1
+wavecode_2_bAdditive=1
+wavecode_2_scaling=1.000000
+wavecode_2_smoothing=0.300000
+wavecode_2_r=1.000000
+wavecode_2_g=1.000000
+wavecode_2_b=0.200000
+wavecode_2_a=0.950000
+wavecode_3_enabled=0
+wave_0_per_point1=x = sample * 0.96 + 0.02;
+wave_0_per_point2=y = 0.12 + value * 0.65;
+wave_0_per_point3=r = 0.6 + 0.4 * bass_att + 0.5 * sample;
+wave_0_per_point4=g = 0.05 + 0.4 * mid_att;
+wave_0_per_point5=b = 0.7 + 0.3 * treb_att + 0.3 * (1 - sample);
+wave_0_per_point6=a = 0.75 + 0.25 * value;
+wave_1_per_point1=x = sample * 0.96 + 0.02;
+wave_1_per_point2=y = 0.88 - value * 0.45;
+wave_1_per_point3=r = 0.05 + 0.3 * bass;
+wave_1_per_point4=g = 0.7 + 0.3 * mid_att;
+wave_1_per_point5=b = 0.8 + 0.2 * treb;
+wave_1_per_point6=a = 0.7 + 0.3 * value;
+wave_2_per_point1=x = 0.5 + 0.42 * cos(sample * 6.2832 + time);
+wave_2_per_point2=y = 0.5 + 0.42 * sin(sample * 6.2832 + time) * (0.4 + 0.6 * value);
+wave_2_per_point3=r = 1.0;
+wave_2_per_point4=g = 0.85 + 0.15 * treb_att;
+wave_2_per_point5=b = 0.1 + 0.4 * mid;
+wave_2_per_point6=a = 0.55 + 0.45 * value;
+per_frame_1=dt = min(max(time - tl, 0.004), 0.08); tl = time;
+per_frame_2=bm = bm + (bass - bm) * (1 - exp(-dt / 0.45));
+per_frame_3=bd = bd + (abs(bass - bm) - bd) * (1 - exp(-dt / 1.5));
+per_frame_4=hit = min(max(((bass - bm) / max(bd, 0.06) - 0.5) / 1.1, 0), 1);
+per_frame_5=kick = max(kick * pow(0.80, 60 * dt), hit);
+per_frame_6=k60 = pow(0.90, 60 * dt);
+per_frame_7=sb = sb * k60 + bass_att * (1 - k60);
+per_frame_8=sm = sm * k60 + mid_att * (1 - k60);
+per_frame_9=st = st * k60 + treb_att * (1 - k60);
+per_frame_10=ang = ang + dt * (0.0200 + 0.0800 * st + 0.15 * kick);
+per_frame_11=scroll = scroll + dt * (0.2200 + 0.35 * st + 0.2 * sb);
+per_frame_12=hue_shift = 0.7800 + 0.12 * time + 0.18 * st - 0.08 * sb + 0.05 * kick; hue_shift = hue_shift - int(hue_shift);
+per_frame_13=ib_a = 0.25 + 0.45 * st + 0.25 * kick;
+per_frame_14=ib_r = 0.1 + 0.7 * st; ib_g = 0.7 + 0.3 * sm; ib_b = 1.0;
+per_frame_15=wave_r = min(0.4 + 0.8 * sb + 0.5 * kick, 1);
+per_frame_16=wave_g = min(0.15 + 0.7 * sm + 0.4 * st, 1);
+per_frame_17=wave_b = min(0.5 + 0.7 * st + 0.3 * sm, 1);
+per_frame_18=q1 = kick; q2 = sb; q3 = sm; q4 = st; q5 = ang;
+per_frame_19=q6 = scroll; q7 = 0.7800; q8 = 1.0000; q9 = 0.0400; q10 = 8.0000;
+per_frame_20=q11 = hue_shift; q12 = min(0.85 + 0.25 * (sb+sm+st), 1.15); q13 = 0.78 + 0.18 * (sb+sm+st);
+warp_1=`float2 rot2(float2 p, float a)
+warp_2=`{
+warp_3=`  float c = cos(a); float s = sin(a);
+warp_4=`  return float2(c*p.x - s*p.y, s*p.x + c*p.y);
+warp_5=`}
+warp_6=`float3 neon_hue(float h)
+warp_7=`{
+warp_8=`  float3 k = abs(frac(h + float3(0.0, 0.66667, 0.33333))*6.0 - 3.0) - 1.0;
+warp_9=`  return saturate(k);
+warp_10=`}
+warp_11=`float3 neon_mix(float u)
+warp_12=`{
+warp_13=`  float h = frac(q11 + u * 0.35 + 0.15 * q4);
+warp_14=`  float3 c = neon_hue(h);
+warp_15=`  c = lerp(c, float3(1.0, 0.05, 0.85), saturate(q2 * 0.55));
+warp_16=`  c = lerp(c, float3(0.05, 1.0, 0.55), saturate(q3 * 0.45));
+warp_17=`  c = lerp(c, float3(0.1, 0.85, 1.0), saturate(q4 * 0.55));
+warp_18=`  return saturate(c);
+warp_19=`}
+warp_20=`float glow_line(float d, float w)
+warp_21=`{
+warp_22=`  return exp(-abs(d) / max(w, 0.001));
+warp_23=`}
+warp_24=`float3 led_tonemap(float3 col)
+warp_25=`{
+warp_26=`  float lum = max(dot(col, float3(0.30, 0.59, 0.11)), 0.0001);
+warp_27=`  float mapped = 1.0 - exp(-lum * 0.95);
+warp_28=`  mapped = min(mapped, 0.92);
+warp_29=`  float3 outc = (col / lum) * mapped * q13;
+warp_30=`  outc += float3(1.0, 1.0, 1.0) * pow(mapped, 3.0) * q1 * 0.65;
+warp_31=`  return saturate(outc);
+warp_32=`}
+warp_33=`shader_body
+warp_34=`{
+warp_35=`  float2 suv = uv + float2(-0.003 - 0.004 * q2, 0.002 * sin(q6 * 5.0 + uv.x * 12.0));
+warp_36=`  float3 prev = tex2D(sampler_main, suv).rgb;
+warp_37=`  prev = lerp(prev, GetBlur1(suv), 0.08);
+warp_38=`  float3 ink = tex2D(sampler_main, uv).rgb;
+warp_39=`  ret = max(prev * (0.88 + 0.04 * q2), ink * (1.0 + 0.18 * q1));
+warp_40=`  ret *= 0.96 + 0.03 * q4;
+warp_41=`  ret = max(ret - 0.0012, 0.0);
+warp_42=`}
+comp_1=`float2 rot2(float2 p, float a)
+comp_2=`{
+comp_3=`  float c = cos(a); float s = sin(a);
+comp_4=`  return float2(c*p.x - s*p.y, s*p.x + c*p.y);
+comp_5=`}
+comp_6=`float3 neon_hue(float h)
+comp_7=`{
+comp_8=`  float3 k = abs(frac(h + float3(0.0, 0.66667, 0.33333))*6.0 - 3.0) - 1.0;
+comp_9=`  return saturate(k);
+comp_10=`}
+comp_11=`float3 neon_mix(float u)
+comp_12=`{
+comp_13=`  float h = frac(q11 + u * 0.35 + 0.15 * q4);
+comp_14=`  float3 c = neon_hue(h);
+comp_15=`  c = lerp(c, float3(1.0, 0.05, 0.85), saturate(q2 * 0.55));
+comp_16=`  c = lerp(c, float3(0.05, 1.0, 0.55), saturate(q3 * 0.45));
+comp_17=`  c = lerp(c, float3(0.1, 0.85, 1.0), saturate(q4 * 0.55));
+comp_18=`  return saturate(c);
+comp_19=`}
+comp_20=`float glow_line(float d, float w)
+comp_21=`{
+comp_22=`  return exp(-abs(d) / max(w, 0.001));
+comp_23=`}
+comp_24=`float3 led_tonemap(float3 col)
+comp_25=`{
+comp_26=`  float lum = max(dot(col, float3(0.30, 0.59, 0.11)), 0.0001);
+comp_27=`  float mapped = 1.0 - exp(-lum * 0.95);
+comp_28=`  mapped = min(mapped, 0.92);
+comp_29=`  float3 outc = (col / lum) * mapped * q13;
+comp_30=`  outc += float3(1.0, 1.0, 1.0) * pow(mapped, 3.0) * q1 * 0.65;
+comp_31=`  return saturate(outc);
+comp_32=`}
+comp_33=`shader_body
+comp_34=`{
+comp_35=`  float ar = texsize.x * texsize.w;
+comp_36=`  float2 p = (uv - 0.5) * float2(ar, 1.0);
+comp_37=`  float2 g = p * q10 + float2(q6 * 0.7, -q6 * 0.25);
+comp_38=`  float2 id = floor(g);
+comp_39=`  float2 f = frac(g) - 0.5;
+comp_40=`  float n = frac(sin(dot(id, float2(127.1, 311.7))) * 43758.5);
+comp_41=`  float flicker = 0.55 + 0.45 * sin(time * (4.0 + 8.0 * n) + n * 20.0);
+comp_42=`  flicker = lerp(flicker, 1.0, saturate(q1 * 1.5));
+comp_43=`  float box = max(abs(f.x), abs(f.y));
+comp_44=`  float edge = glow_line(box - 0.32, q9 * (0.5 + 0.5 * q4));
+comp_45=`  float fill = smoothstep(0.38, 0.28, box);
+comp_46=`  float3 c = neon_mix(n + q11);
+comp_47=`  float3 col = c * fill * flicker * (0.22 + 0.28 * q2 + 0.22 * q3);
+comp_48=`  col += c * edge * (0.95 + 0.55 * q4) * flicker;
+comp_49=`  col += neon_hue(q11 + 0.5) * pow(edge, 3.0) * 0.9;
+comp_50=`  float3 tex = tex2D(sampler_main, uv).rgb;
+comp_51=`  col += tex * neon_mix(uv.x) * 0.22 * flicker;
+comp_52=`  float scan = 0.88 + 0.12 * sin(uv.y * 480.0 + time * 20.0);
+comp_53=`  col *= scan;
+comp_54=`  ret = led_tonemap(col);
+comp_55=`}

@@ -154,11 +154,12 @@ Headless / no GPU:
 | `--frames N` | Exit after N frames |
 | `--dump-ppm FILE` | Write the last RGB frame as binary PPM |
 | `--software-gl` | Force Mesa software rasteriser |
-| `--no-shuffle` | Playlist order instead of random |
-| `--preset-duration SEC` | Seconds each playlist preset is shown (default 30) |
-| `--shuffle-delay SEC` | Alias for `--preset-duration` |
+| `--shuffle` | Randomise playlist selection (off by default) |
+| `--no-shuffle` | Alphabetical full-path order (default) |
+| `--preset-duration SEC` | Seconds each playlist preset is shown before switching (default 30) |
+| `--switch-delay SEC` | Alias for `--preset-duration` |
 | `--quiet` | Suppress startup status and progress |
-| `--progress` | Print a periodic frame counter on stderr |
+| `--progress` | Print periodic status with measured fps on stderr |
 | `--set KEY=VALUE` | projectM property (repeatable) |
 
 `--set` keys: `beat_sensitivity`, `hard_cut_duration`, `hard_cut_enabled`, `hard_cut_sensitivity`, `soft_cut_duration`, `preset_duration`, `mesh_size` (`WxH`), `aspect_correction`, `easter_egg`, `preset_locked`, `shuffle`.
@@ -236,7 +237,12 @@ Release assets also include `docker save` tarballs (`*-alpine-*.tar.gz`, `*-debi
 In-tree packs:
 
 - `presets/milk-ddp-*.milk` / `presets/lowres/` — original **GPL-3.0-or-later** matrix presets (64×64–256×256)
-- `presets/modern/` — **MIT** MilkDrop 2 / mock-3D selection (M0Rf30): fractals, hyperspace, nebulae, kaleidoscope, shader warp/comp
+- `presets/fractal/` — original **GPL** MilkDrop 2 fractals (classic, nature / landscape, zoom-rush dives)
+- `presets/surfaces/` — original **GPL** waveform→texture mapped onto convex / concave / landscape surfaces
+- `presets/neon/` — original **GPL** vivid neon grids, tubes, lasers, signage, circuit traces
+- `presets/jelly/` — original **GPL** gelatinous relief / machine-code scrolls (Machine Code Jelly–inspired)
+- `presets/rush/` — original **GPL** forward-zoom tunnels from waveform-driven geometry
+- `presets/modern/` — **MIT** MilkDrop 2 / mock-3D selection (M0Rf30): Fractal Sanctum, hyperspace, nebulae, kaleidoscope
 
 ```bash
 ./build/milk-ddp --width 64 --height 64 \
@@ -244,11 +250,33 @@ In-tree packs:
   --ddp 192.168.1.50:4048 --audio pulse
 
 ./build/milk-ddp --width 128 --height 128 \
-  --preset-path ./presets/modern --shuffle-delay 45 \
+  --preset-path ./presets/fractal --switch-delay 40 \
+  --ddp 192.168.1.50:4048 --audio pulse
+
+./build/milk-ddp --width 128 --height 128 \
+  --preset-path ./presets/surfaces --switch-delay 40 \
+  --ddp 192.168.1.50:4048 --audio pulse
+
+./build/milk-ddp --width 128 --height 128 \
+  --preset-path ./presets/neon --switch-delay 35 \
+  --ddp 192.168.1.50:4048 --audio pulse
+
+./build/milk-ddp --width 128 --height 128 \
+  --preset-path ./presets/jelly --switch-delay 35 \
+  --ddp 192.168.1.50:4048 --audio pulse
+
+./build/milk-ddp --width 128 --height 128 \
+  --preset-path ./presets/rush --switch-delay 30 \
+  --ddp 192.168.1.50:4048 --audio pulse
+
+./build/milk-ddp --width 128 --height 128 \
+  --preset-path ./presets/modern --switch-delay 45 \
   --ddp 192.168.1.50:4048 --audio pulse
 ```
 
-Details: [`presets/README.md`](presets/README.md), [`presets/modern/README.md`](presets/modern/README.md).
+Details: [`presets/README.md`](presets/README.md), [`presets/rush/README.md`](presets/rush/README.md), [`presets/jelly/README.md`](presets/jelly/README.md), [`presets/neon/README.md`](presets/neon/README.md), [`presets/surfaces/README.md`](presets/surfaces/README.md), [`presets/fractal/README.md`](presets/fractal/README.md), [`presets/modern/README.md`](presets/modern/README.md).
+
+CPU cost notes (software GL vs GPU, resolution, mesh): [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md).
 
 ### Larger third-party packs (download separately)
 
@@ -372,7 +400,7 @@ Pixels are sent row-major, left to right, top to bottom, RGB888. That matches a 
 | Component | Licence |
 |---|---|
 | milk-ddp application (`src/`, `tests/`, build files) | **GPL-3.0-or-later** (`LICENSE`) |
-| In-tree GPL presets (`presets/milk-ddp-*.milk`, `lowres/`) | **GPL-3.0-or-later** |
+| In-tree GPL presets (`presets/milk-ddp-*.milk`, `lowres/`, `fractal/`, `surfaces/`, `neon/`, `jelly/`, `rush/`) | **GPL-3.0-or-later** |
 | `presets/modern/` (M0Rf30 selection) | **MIT** |
 | libprojectM (FetchContent / local / system) | **LGPL-2.1-or-later** — see `THIRD_PARTY.md` |
 | External preset packs (Cream of the Crop, textures, …) | **Not shipped**; each pack’s own terms |

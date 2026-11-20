@@ -27,7 +27,7 @@ libprojectM source tree.
 
 | Path | Licence | Notes |
 |---|---|---|
-| `presets/*.milk`, `presets/lowres/` | **GPL-3.0-or-later** | Original works for LED matrices 64×64–256×256. See `presets/LICENSE`. |
+| `presets/*.milk`, `presets/lowres/`, `presets/fractal/`, `presets/surfaces/`, `presets/neon/`, `presets/jelly/`, `presets/rush/` | **GPL-3.0-or-later** | Original works for LED matrices. See `presets/LICENSE`. |
 | `presets/modern/` | **MIT** | Curated MilkDrop 2 / mock-3D selection from [M0Rf30/projectm-presets](https://github.com/M0Rf30/projectm-presets). See `presets/modern/LICENSE`. |
 
 ## Recommended external preset packs (optional)

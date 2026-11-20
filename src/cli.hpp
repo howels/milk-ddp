@@ -19,12 +19,12 @@ struct Config {
     int frames = 0;  // 0 = run until signal
     std::string dump_ppm;
     bool software_gl = false;
-    bool shuffle = true;
+    bool shuffle = false;
     // Seconds each playlist preset is shown before the next soft/hard cut.
     // Negative means leave libprojectM's default (30 s).
     double preset_duration = -1.0;
-    bool quiet = false;      // suppress startup banner and progress
-    bool progress = false;   // periodic frame counter on stderr
+    bool quiet = false;      // suppress startup banner, preset lines, and progress
+    bool progress = false;   // periodic status line with measured fps on stderr
     bool list_audio = false; // print Pulse/ALSA devices and exit
     std::vector<std::pair<std::string, std::string>> properties;
 };

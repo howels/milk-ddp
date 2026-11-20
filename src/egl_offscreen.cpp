@@ -265,22 +265,26 @@ void OffscreenGL::bind_default() const
     glViewport(0, 0, width_, height_);
 }
 
-void OffscreenGL::read_rgb(unsigned char* dest_top_left_rgb) const
+void OffscreenGL::read_rgb(unsigned char* dest_top_left_rgb)
 {
     bind_default();
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glFinish();
+    // glReadPixels synchronises the pipeline; an extra glFinish() only adds
+    // latency with no correctness benefit for this readback path.
 
-    std::vector<unsigned char> bottom_up(static_cast<std::size_t>(width_) * height_ * 3);
-    glReadPixels(0, 0, width_, height_, GL_RGB, GL_UNSIGNED_BYTE, bottom_up.data());
+    const std::size_t bytes = static_cast<std::size_t>(width_) * height_ * 3;
+    if (readback_.size() != bytes) {
+        readback_.assign(bytes, 0);
+    }
+    glReadPixels(0, 0, width_, height_, GL_RGB, GL_UNSIGNED_BYTE, readback_.data());
     const GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
         throw std::runtime_error("glReadPixels failed with GL error " + std::to_string(err));
     }
 
     for (int y = 0; y < height_; ++y) {
-        const unsigned char* src = bottom_up.data() + static_cast<std::size_t>(height_ - 1 - y) *
-                                                          width_ * 3;
+        const unsigned char* src =
+            readback_.data() + static_cast<std::size_t>(height_ - 1 - y) * width_ * 3;
         unsigned char* dst = dest_top_left_rgb + static_cast<std::size_t>(y) * width_ * 3;
         std::memcpy(dst, src, static_cast<std::size_t>(width_) * 3);
     }
