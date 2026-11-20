@@ -150,6 +150,11 @@ install(DIRECTORY presets/ DESTINATION ${CMAKE_INSTALL_DATADIR}/milk-ddp/presets
 install(FILES presets/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/milk-ddp/presets)
 install(FILES presets/modern/LICENSE
         DESTINATION ${CMAKE_INSTALL_DATADIR}/milk-ddp/presets/modern)
-install(FILES LICENSE THIRD_PARTY.md docs/PERFORMANCE.md
-        DESTINATION ${CMAKE_INSTALL_DOCDIR})
+install(FILES LICENSE THIRD_PARTY.md DESTINATION ${CMAKE_INSTALL_DOCDIR})
+# Ship whatever documentation is present under docs/ (e.g. PERFORMANCE.md).
+install(DIRECTORY docs/
+        DESTINATION ${CMAKE_INSTALL_DOCDIR}
+        FILES_MATCHING
+        PATTERN "*.md"
+        PATTERN "*.txt")
 install(PROGRAMS tests/ddp_listen.py DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/milk-ddp)

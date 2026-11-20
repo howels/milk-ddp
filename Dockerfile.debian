@@ -20,6 +20,7 @@ WORKDIR /src
 COPY CMakeLists.txt LICENSE THIRD_PARTY.md ./
 COPY src ./src
 COPY presets ./presets
+COPY docs ./docs
 COPY tests ./tests
 # Optional offline libprojectM tree (make vendor-projectm on the host first).
 COPY third_party ./third_party
