@@ -1,0 +1,59 @@
+# Third-party components
+
+milkdrop-ddp itself is licensed under the **GNU General Public License v3 or later**
+(see `LICENSE`). The components below have their own terms. Recipients of
+binaries must receive the corresponding source offers required by those licences.
+
+## libprojectM
+
+| Field | Value |
+|---|---|
+| Project | [projectM-visualizer/projectm](https://github.com/projectM-visualizer/projectm) |
+| Default version | tag `v4.1.8` (`MILKDROP_DDP_PROJECTM_GIT_TAG`) |
+| Licence | **GNU LGPL-2.1 or later** |
+| How obtained | FetchContent, `third_party/projectm/`, `MILKDROP_DDP_PROJECTM_SOURCE`, or system `find_package(projectM4)` |
+
+When milkdrop-ddp is distributed as a binary that statically or dynamically
+links libprojectM, the LGPL requires that recipients can obtain the libprojectM
+source used for that build and can relink against a modified libprojectM. The
+matching tag is recorded in CMake (`MILKDROP_DDP_PROJECTM_GIT_TAG`) and in
+release assets.
+
+libprojectM also vendors its own dependencies (for example projectM-eval, hlslparser,
+SOIL2/stb, GLM when not using the system copy). Their licences ship inside the
+libprojectM source tree.
+
+## In-tree presets (`presets/`)
+
+All `.milk` files under `presets/` (including `presets/lowres/`) were written
+for this repository for LED matrices **64×64 through 256×256**. They are part
+of milkdrop-ddp and are covered by **GPL-3.0-or-later**. See `presets/LICENSE`
+and `presets/README.md`.
+
+## Recommended external preset packs (not shipped)
+
+These packs are **not** included in this repository. Clone them separately and
+pass `--preset-path` / `--texture-path`. Check each pack’s own licence and
+attribution before redistribution.
+
+| Pack | Repository | Notes |
+|---|---|---|
+| Cream of the Crop (recommended default) | [projectM-visualizer/presets-cream-of-the-crop](https://github.com/projectM-visualizer/presets-cream-of-the-crop) | ~10k curated Milkdrop presets; default pack in modern projectM frontends. Curated by ISOSCELES / Jason Fletcher. |
+| Milkdrop texture pack | [projectM-visualizer/presets-milkdrop-texture-pack](https://github.com/projectM-visualizer/presets-milkdrop-texture-pack) | Base textures many presets expect; use with `--texture-path`. |
+| Classic projectM presets | [projectM-visualizer/presets-projectm-2.0](https://github.com/projectM-visualizer/presets-projectm-2.0) | Older projectM collection. |
+| Milkdrop 2 presets | See projectM org / Winamp Milkdrop collections | Original Milkdrop 1/2 sets; licence varies by author. |
+
+Original Milkdrop presets are typically redistributed under terms set by their
+individual authors. Prefer the projectM-visualizer GitHub mirrors for packs
+intended for projectM.
+
+## Mesa / EGL / PulseAudio / ALSA
+
+Runtime system libraries (Mesa llvmpipe, libpulse, libasound) are linked
+dynamically from the host or container image and are not redistributed as
+source in this tree. Their licences are those of the OS packages.
+
+## DDP protocol
+
+The Distributed Display Protocol is documented by 3waylabs / WLED. This
+repository implements a sender only; no third-party DDP library is vendored.
