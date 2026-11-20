@@ -83,9 +83,13 @@ endif()
 
 message(STATUS "libprojectM mode: ${MILK_DDP_PROJECTM_MODE}")
 
-find_package(OpenGL REQUIRED COMPONENTS OpenGL EGL)
+# Mesa on Alpine has no GLVND libOpenGL.so. CMake's FindOpenGL COMPONENTS EGL
+# still requires that library, so link via pkg-config (egl + gl) on all hosts.
 find_package(Threads REQUIRED)
-find_package(PkgConfig)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(EGL REQUIRED IMPORTED_TARGET egl)
+pkg_check_modules(GL REQUIRED IMPORTED_TARGET gl)
+message(STATUS "EGL: ${EGL_VERSION}  GL: ${GL_VERSION}")
 
 set(MILK_DDP_HAVE_PULSE OFF)
 set(MILK_DDP_HAVE_ALSA OFF)
@@ -124,8 +128,8 @@ target_compile_options(milk-ddp PRIVATE
 target_link_libraries(milk-ddp PRIVATE
     libprojectM::projectM
     libprojectM::playlist
-    OpenGL::EGL
-    OpenGL::GL
+    PkgConfig::EGL
+    PkgConfig::GL
     Threads::Threads
 )
 
