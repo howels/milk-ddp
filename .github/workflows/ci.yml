@@ -97,10 +97,21 @@ jobs:
 
       - name: Smoke-test image
         run: |
-          docker run --rm "milk-ddp:ci-${{ matrix.name }}-${{ matrix.arch }}" \
+          IMAGE="milk-ddp:ci-${{ matrix.name }}-${{ matrix.arch }}"
+          docker run --rm "${IMAGE}" \
             --software-gl --preset-path /usr/share/milk-ddp/presets --help
-          docker run --rm "milk-ddp:ci-${{ matrix.name }}-${{ matrix.arch }}" \
-            --software-gl --width 64 --height 64 --fps 15 --frames 2 \
-            --ddp 127.0.0.1:9 \
-            --preset-path /usr/share/milk-ddp/presets/lowres \
-            --audio sine --quiet
+          # Listen inside the container: connected UDP send() needs a peer, and
+          # host-network sharing differs between Docker (Actions) and rootless Podman.
+          docker run --rm --entrypoint sh "${IMAGE}" -c '
+            set -eu
+            python3 /usr/libexec/milk-ddp/ddp_listen.py \
+              --bind 127.0.0.1 --port 19049 --width 64 --height 64 \
+              --frames 2 --timeout 60 &
+            LISTEN_PID=$!
+            sleep 0.3
+            milk-ddp --software-gl --width 64 --height 64 --fps 15 --frames 2 \
+              --ddp 127.0.0.1:19049 \
+              --preset-path /usr/share/milk-ddp/presets/lowres \
+              --audio sine --quiet
+            wait "${LISTEN_PID}"
+          '

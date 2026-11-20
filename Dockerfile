@@ -33,9 +33,12 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
 
 FROM debian:bookworm-slim
 
+# libopengl0 / libglx0: GLVND libs that pkg-config "gl" links on Debian (libGL → OpenGL+GLX).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libegl1 \
         libgl1 \
+        libopengl0 \
+        libglx0 \
         libgl1-mesa-dri \
         libasound2 \
         libpulse0 \

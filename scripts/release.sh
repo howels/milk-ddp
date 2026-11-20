@@ -115,6 +115,7 @@ git push "${REMOTE}" "HEAD:refs/heads/${BRANCH}"
 echo "==> tag ${TAG}"
 git tag -a "${TAG}" -m "${TAG}"
 
+PUSHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "==> push ${TAG}"
 if [[ "${REPUBLISH}" == "1" ]]; then
   git push --force "${REMOTE}" "refs/tags/${TAG}"
@@ -131,14 +132,23 @@ if [[ "${WATCH}" == "1" ]]; then
     echo "warning: gh not installed; not watching the workflow" >&2
     exit 0
   fi
-  echo "==> waiting for Release workflow on ${TAG}"
-  # Give Actions a moment to register the push before listing runs.
-  sleep 3
-  RUN_ID="$(gh run list --workflow=release.yml --branch "${TAG}" --limit 1 --json databaseId --jq '.[0].databaseId')"
-  if [[ -z "${RUN_ID}" || "${RUN_ID}" == "null" ]]; then
-    echo "warning: no release run found yet; check Actions manually" >&2
+  echo "==> waiting for Release workflow on ${TAG} (created at/after ${PUSHED_AT})"
+  RUN_ID=""
+  for _ in $(seq 1 40); do
+    RUN_ID="$(gh run list --workflow=release.yml --branch "${TAG}" --limit 10 \
+      --json databaseId,createdAt \
+      | jq -r --arg since "${PUSHED_AT}" \
+        '[.[] | select(.createdAt >= $since)] | .[0].databaseId // empty')"
+    if [[ -n "${RUN_ID}" ]]; then
+      break
+    fi
+    sleep 3
+  done
+  if [[ -z "${RUN_ID}" ]]; then
+    echo "warning: no new release run found yet; check Actions manually" >&2
     exit 0
   fi
+  echo "==> watching run ${RUN_ID}"
   gh run watch "${RUN_ID}" --exit-status
   echo "==> publishing release notes page"
   gh release view "${TAG}" --web 2>/dev/null || gh release view "${TAG}"
