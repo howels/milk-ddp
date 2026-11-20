@@ -2,7 +2,7 @@
 """Receive DDP UDP packets and reconstruct RGB frames.
 
 WLED listens on UDP 4048. This process does the same so a headless
-milkdrop-ddp run can be checked without a matrix. Protocol layout is
+milk-ddp run can be checked without a matrix. Protocol layout is
 the 10-byte header from http://www.3waylabs.com/ddp/ : version 1,
 optional push bit, RGB24 type 0x0B, 32-bit big-endian byte offset,
 16-bit big-endian length.

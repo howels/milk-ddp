@@ -9,9 +9,9 @@
 void print_usage()
 {
     std::cerr
-        << "milkdrop-ddp — headless projectM renderer, DDP output to a WLED matrix\n"
+        << "milk-ddp — headless projectM renderer, DDP output to a WLED matrix\n"
         << "\n"
-        << "Usage: milkdrop-ddp [options]\n"
+        << "Usage: milk-ddp [options]\n"
         << "\n"
         << "  --width, -W N            Render width in pixels (default 128)\n"
         << "  --height, -H N           Render height in pixels (default 128)\n"

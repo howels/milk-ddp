@@ -4,7 +4,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BIN="${MILKDROP_DDP_BIN:-${ROOT}/build/milkdrop-ddp}"
+BIN="${MILK_DDP_BIN:-${ROOT}/build/milk-ddp}"
 LISTEN="${ROOT}/tests/ddp_listen.py"
 PORT="${DDP_TEST_PORT:-14048}"
 WIDTH=32
@@ -17,7 +17,7 @@ if [[ ! -x "${BIN}" ]]; then
 fi
 
 python3 "${LISTEN}" --bind 127.0.0.1 --port "${PORT}" --width "${WIDTH}" --height "${HEIGHT}" \
-  --frames "${FRAMES}" --timeout 60 --dump-ppm /tmp/milkdrop-ddp-last.ppm &
+  --frames "${FRAMES}" --timeout 60 --dump-ppm /tmp/milk-ddp-last.ppm &
 LISTENER_PID=$!
 cleanup() {
   kill "${LISTENER_PID}" 2>/dev/null || true
@@ -32,10 +32,10 @@ GALLIUM_DRIVER=llvmpipe MESA_LOADER_DRIVER_OVERRIDE=llvmpipe \
   --ddp "127.0.0.1:${PORT}" \
   --audio sine \
   --preset-path "${ROOT}/presets" \
-  --preset "${ROOT}/presets/milkdrop-ddp-bars.milk" \
+  --preset "${ROOT}/presets/milk-ddp-bars.milk" \
   --set beat_sensitivity=1.5 \
   --quiet
 
 wait "${LISTENER_PID}"
 trap - EXIT
-echo "DDP stream validated without a hardware display (see /tmp/milkdrop-ddp-last.ppm)"
+echo "DDP stream validated without a hardware display (see /tmp/milk-ddp-last.ppm)"

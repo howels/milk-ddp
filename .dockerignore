@@ -1,0 +1,17 @@
+# Keep build contexts small and reproducible.
+.git
+.github
+build
+cmake-build-*
+out
+.cache
+*.ppm
+.idea
+.vscode
+**/*.user
+compile_commands.json
+CMakeUserPresets.json
+agent-transcripts
+README.md
+renovate.json
+.editorconfig

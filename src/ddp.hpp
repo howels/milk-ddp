@@ -17,4 +17,5 @@ public:
 private:
     int fd_ = -1;
     uint8_t sequence_ = 1;
+    std::vector<unsigned char> packet_;
 };

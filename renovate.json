@@ -25,7 +25,7 @@
       "description": "libprojectM FetchContent git tag (CMake) and make vendor-projectm branch",
       "fileMatch": ["(^|/)CMakeLists\\.txt$", "(^|/)Makefile$"],
       "matchStrings": [
-        "MILKDROP_DDP_PROJECTM_GIT_TAG\\s+\"(?<currentValue>[^\"]+)\"\\s+CACHE",
+        "MILK_DDP_PROJECTM_GIT_TAG\\s+\"(?<currentValue>[^\"]+)\"\\s+CACHE",
         "git clone --branch (?<currentValue>v?[0-9][^\\s]*) --depth 1 --recurse-submodules"
       ],
       "datasourceTemplate": "git-tags",

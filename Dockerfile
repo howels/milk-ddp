@@ -1,5 +1,6 @@
-# Default image is Debian (same as Dockerfile.debian).
-# Explicit tags: make docker-debian | make docker-alpine
+# Debian image (same stages as Dockerfile.debian).
+# Preferred release image is Alpine — use Dockerfile.alpine / make docker-alpine.
+# Explicit tags: make docker-debian | make docker-alpine (Alpine also tags :latest).
 FROM debian:bookworm-slim AS build
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -41,12 +42,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /usr/bin/milkdrop-ddp /usr/bin/milkdrop-ddp
-COPY --from=build /usr/share/milkdrop-ddp /usr/share/milkdrop-ddp
-COPY --from=build /usr/libexec/milkdrop-ddp /usr/libexec/milkdrop-ddp
+COPY --from=build /usr/bin/milk-ddp /usr/bin/milk-ddp
+COPY --from=build /usr/share/milk-ddp /usr/share/milk-ddp
+COPY --from=build /usr/libexec/milk-ddp /usr/libexec/milk-ddp
 
 ENV GALLIUM_DRIVER=llvmpipe \
     MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
 
-ENTRYPOINT ["/usr/bin/milkdrop-ddp"]
-CMD ["--software-gl", "--preset-path", "/usr/share/milkdrop-ddp/presets", "--help"]
+ENTRYPOINT ["/usr/bin/milk-ddp"]
+CMD ["--software-gl", "--preset-path", "/usr/share/milk-ddp/presets", "--help"]

@@ -1,6 +1,6 @@
-# Local binary and container images for milkdrop-ddp.
+# Local binary and container images for milk-ddp.
 #
-#   make              → configure + build ./build/milkdrop-ddp
+#   make              → configure + build ./build/milk-ddp
 #   make validate     → headless DDP self-test (no display)
 #   make docker       → Debian and Alpine images
 #   make docker-debian / make docker-alpine → one image
@@ -22,16 +22,16 @@ CMAKE_EXTRA_ARGS     ?=
 
 CMAKE_ARGS = -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) $(CMAKE_EXTRA_ARGS)
 ifneq ($(strip $(PROJECTM_SOURCE)),)
-CMAKE_ARGS += -DMILKDROP_DDP_PROJECTM_SOURCE=$(PROJECTM_SOURCE)
+CMAKE_ARGS += -DMILK_DDP_PROJECTM_SOURCE=$(PROJECTM_SOURCE)
 endif
 ifeq ($(USE_SYSTEM_PROJECTM),1)
-CMAKE_ARGS += -DMILKDROP_DDP_USE_SYSTEM_PROJECTM=ON
+CMAKE_ARGS += -DMILK_DDP_USE_SYSTEM_PROJECTM=ON
 endif
 ifeq ($(OFFLINE),1)
 CMAKE_ARGS += -DFETCHCONTENT_FULLY_DISCONNECTED=ON
 endif
 
-IMAGE       ?= milkdrop-ddp
+IMAGE       ?= milk-ddp
 IMAGE_DEBIAN ?= $(IMAGE):debian
 IMAGE_ALPINE ?= $(IMAGE):alpine
 IMAGE_LATEST ?= $(IMAGE):latest
@@ -47,7 +47,7 @@ all: build
 
 help:
 	@printf '%s\n' \
-		'make / make build     Configure and build $(BUILD_DIR)/milkdrop-ddp' \
+		'make / make build     Configure and build $(BUILD_DIR)/milk-ddp' \
 		'make reconfigure      Wipe CMake cache and rebuild (after moving the tree)' \
 		'make validate         Headless DDP stream self-test' \
 		'make clean            Remove object files (keep CMake cache)' \
@@ -56,9 +56,9 @@ help:
 		'make PROJECTM_SOURCE=/path  Build against a local libprojectM tree' \
 		'make USE_SYSTEM_PROJECTM=1  Use find_package(projectM4)' \
 		'make OFFLINE=1        Do not contact the network (needs local projectM)' \
-		'make docker           Build Debian and Alpine container images' \
-		'make docker-debian    Build $(IMAGE_DEBIAN) (and tag :latest)' \
-		'make docker-alpine    Build $(IMAGE_ALPINE)' \
+		'make docker           Build Alpine (:latest) and Debian images' \
+		'make docker-alpine    Build $(IMAGE_ALPINE) and tag :latest (preferred)' \
+		'make docker-debian    Build $(IMAGE_DEBIAN)' \
 		'make docker-run       Run $(IMAGE_LATEST) --help on the host network'
 
 $(BUILD_DIR)/build.ninja $(BUILD_DIR)/Makefile: CMakeLists.txt
@@ -92,14 +92,15 @@ distclean:
 validate: build
 	bash tests/validate.sh
 
-docker: docker-debian docker-alpine
-
-docker-debian:
-	$(DOCKER) build -f $(DOCKERFILE_DEBIAN) -t $(IMAGE_DEBIAN) -t $(IMAGE_LATEST) .
+# Alpine is the preferred release image (:latest). Debian remains available.
+docker: docker-alpine docker-debian
 
 docker-alpine:
-	$(DOCKER) build -f $(DOCKERFILE_ALPINE) -t $(IMAGE_ALPINE) .
+	$(DOCKER) build -f $(DOCKERFILE_ALPINE) -t $(IMAGE_ALPINE) -t $(IMAGE_LATEST) .
+
+docker-debian:
+	$(DOCKER) build -f $(DOCKERFILE_DEBIAN) -t $(IMAGE_DEBIAN) .
 
 docker-run:
 	$(DOCKER) run --rm --network host $(IMAGE_LATEST) \
-		--software-gl --preset-path /usr/share/milkdrop-ddp/presets --help
+		--software-gl --preset-path /usr/share/milk-ddp/presets --help

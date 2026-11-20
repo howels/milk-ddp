@@ -12,8 +12,16 @@ concurrency:
 
 jobs:
   build:
-    name: build-and-validate
-    runs-on: ubuntu-24.04
+    name: build-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,22 +49,42 @@ jobs:
           MESA_LOADER_DRIVER_OVERRIDE: llvmpipe
 
       - name: List audio backends
-        run: ./build/milkdrop-ddp --list-audio || true
+        run: ./build/milk-ddp --list-audio || true
 
       - name: Upload binary (artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: milkdrop-ddp-linux-x86_64
+          name: milk-ddp-linux-${{ matrix.arch }}
           path: |
-            build/milkdrop-ddp
+            build/milk-ddp
             LICENSE
             THIRD_PARTY.md
             presets/
           if-no-files-found: error
 
   docker:
-    name: docker-debian
-    runs-on: ubuntu-24.04
+    name: docker-${{ matrix.name }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: alpine
+            file: Dockerfile.alpine
+            arch: amd64
+            runner: ubuntu-24.04
+          - name: debian
+            file: Dockerfile.debian
+            arch: amd64
+            runner: ubuntu-24.04
+          - name: alpine
+            file: Dockerfile.alpine
+            arch: arm64
+            runner: ubuntu-24.04-arm
+          - name: debian
+            file: Dockerfile.debian
+            arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,10 +92,15 @@ jobs:
       - name: Ensure third_party dir for COPY
         run: mkdir -p third_party && touch third_party/.gitkeep
 
-      - name: Build Debian image
-        run: docker build -f Dockerfile.debian -t milkdrop-ddp:ci .
+      - name: Build ${{ matrix.name }} image (${{ matrix.arch }})
+        run: docker build -f "${{ matrix.file }}" -t "milk-ddp:ci-${{ matrix.name }}-${{ matrix.arch }}" .
 
-      - name: Smoke-test image help
+      - name: Smoke-test image
         run: |
-          docker run --rm milkdrop-ddp:ci \
-            --software-gl --preset-path /usr/share/milkdrop-ddp/presets --help
+          docker run --rm "milk-ddp:ci-${{ matrix.name }}-${{ matrix.arch }}" \
+            --software-gl --preset-path /usr/share/milk-ddp/presets --help
+          docker run --rm "milk-ddp:ci-${{ matrix.name }}-${{ matrix.arch }}" \
+            --software-gl --width 64 --height 64 --fps 15 --frames 2 \
+            --ddp 127.0.0.1:9 \
+            --preset-path /usr/share/milk-ddp/presets/lowres \
+            --audio sine --quiet

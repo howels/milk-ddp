@@ -1,15 +1,13 @@
 #include "ddp.hpp"
 
-#include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <algorithm>
+#include <cerrno>
 #include <cstring>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
 namespace {
 constexpr std::size_t kHeader = 10;
@@ -51,6 +49,7 @@ DdpSender::DdpSender(const std::string& host, uint16_t port)
                                  std::to_string(port));
     }
     fd_ = fd;
+    packet_.reserve(kHeader + kMaxRgbBytes);
 }
 
 DdpSender::~DdpSender()
@@ -64,29 +63,29 @@ void DdpSender::send_rgb_frame(const unsigned char* rgb, std::size_t pixel_count
 {
     const std::size_t total = pixel_count * 3;
     std::size_t offset = 0;
-    uint8_t seq = sequence_;
+    const uint8_t seq = sequence_;
     sequence_ = static_cast<uint8_t>(sequence_ == 15 ? 1 : sequence_ + 1);
 
     while (offset < total) {
         const std::size_t chunk = std::min(kMaxRgbBytes, total - offset);
         const bool last = (offset + chunk) >= total;
 
-        std::vector<unsigned char> pkt(kHeader + chunk);
-        pkt[0] = static_cast<unsigned char>(kVer1 | (last ? kPush : 0));
-        pkt[1] = seq;
-        pkt[2] = kRgb24;
-        pkt[3] = kDestDisplay;
-        pkt[4] = static_cast<unsigned char>((offset >> 24) & 0xFF);
-        pkt[5] = static_cast<unsigned char>((offset >> 16) & 0xFF);
-        pkt[6] = static_cast<unsigned char>((offset >> 8) & 0xFF);
-        pkt[7] = static_cast<unsigned char>(offset & 0xFF);
-        pkt[8] = static_cast<unsigned char>((chunk >> 8) & 0xFF);
-        pkt[9] = static_cast<unsigned char>(chunk & 0xFF);
-        std::memcpy(pkt.data() + kHeader, rgb + offset, chunk);
+        packet_.resize(kHeader + chunk);
+        packet_[0] = static_cast<unsigned char>(kVer1 | (last ? kPush : 0));
+        packet_[1] = seq;
+        packet_[2] = kRgb24;
+        packet_[3] = kDestDisplay;
+        packet_[4] = static_cast<unsigned char>((offset >> 24) & 0xFF);
+        packet_[5] = static_cast<unsigned char>((offset >> 16) & 0xFF);
+        packet_[6] = static_cast<unsigned char>((offset >> 8) & 0xFF);
+        packet_[7] = static_cast<unsigned char>(offset & 0xFF);
+        packet_[8] = static_cast<unsigned char>((chunk >> 8) & 0xFF);
+        packet_[9] = static_cast<unsigned char>(chunk & 0xFF);
+        std::memcpy(packet_.data() + kHeader, rgb + offset, chunk);
 
-        const ssize_t n = ::send(fd_, pkt.data(), pkt.size(), 0);
-        if (n < 0 || static_cast<std::size_t>(n) != pkt.size()) {
-            throw std::runtime_error("DDP send() failed");
+        const ssize_t n = ::send(fd_, packet_.data(), packet_.size(), 0);
+        if (n < 0 || static_cast<std::size_t>(n) != packet_.size()) {
+            throw std::runtime_error(std::string("DDP send() failed: ") + std::strerror(errno));
         }
         offset += chunk;
     }

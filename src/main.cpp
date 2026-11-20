@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright (C) 2026 milkdrop-ddp contributors
+ * Copyright (C) 2026 milk-ddp contributors
  */
 #include "audio.hpp"
 #include "cli.hpp"
@@ -14,21 +14,21 @@
 #include <atomic>
 #include <chrono>
 #include <csignal>
-#include <cstdio>
-#include <cstring>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
 
 namespace {
+
 std::atomic<bool> g_stop{false};
 
 void on_signal(int)
 {
-    g_stop.store(true);
+    g_stop.store(true, std::memory_order_relaxed);
 }
 
 void write_ppm(const std::string& path, int width, int height, const unsigned char* rgb)
@@ -41,6 +41,27 @@ void write_ppm(const std::string& path, int width, int height, const unsigned ch
     out.write(reinterpret_cast<const char*>(rgb),
               static_cast<std::streamsize>(width) * height * 3);
 }
+
+struct ProjectMDeleter {
+    void operator()(projectm* p) const noexcept
+    {
+        if (p != nullptr) {
+            projectm_destroy(p);
+        }
+    }
+};
+
+struct PlaylistDeleter {
+    void operator()(projectm_playlist* p) const noexcept
+    {
+        if (p != nullptr) {
+            projectm_playlist_destroy(p);
+        }
+    }
+};
+
+using ProjectMPtr = std::unique_ptr<projectm, ProjectMDeleter>;
+using PlaylistPtr = std::unique_ptr<projectm_playlist, PlaylistDeleter>;
 
 }  // namespace
 
@@ -58,15 +79,14 @@ int main(int argc, char** argv)
         OffscreenGL gl;
         gl.create(cfg.width, cfg.height, cfg.software_gl);
 
-        projectm_handle pm = projectm_create();
-        if (pm == nullptr) {
+        ProjectMPtr pm(projectm_create());
+        if (!pm) {
             throw std::runtime_error(
                 "projectm_create() returned null; OpenGL 3.3 context is missing or unusable");
         }
 
-        projectm_playlist_handle playlist = projectm_playlist_create(pm);
-        if (playlist == nullptr) {
-            projectm_destroy(pm);
+        PlaylistPtr playlist(projectm_playlist_create(pm.get()));
+        if (!playlist) {
             throw std::runtime_error("projectm_playlist_create() failed");
         }
 
@@ -76,22 +96,22 @@ int main(int argc, char** argv)
             for (const auto& p : cfg.texture_paths) {
                 ptrs.push_back(p.c_str());
             }
-            projectm_set_texture_search_paths(pm, ptrs.data(), ptrs.size());
+            projectm_set_texture_search_paths(pm.get(), ptrs.data(), ptrs.size());
         }
 
-        apply_projectm_properties(pm, playlist, cfg);
+        apply_projectm_properties(pm.get(), playlist.get(), cfg);
 
         unsigned int added = 0;
         for (const auto& path : cfg.preset_paths) {
-            added += projectm_playlist_add_path(playlist, path.c_str(), true, false);
+            added += projectm_playlist_add_path(playlist.get(), path.c_str(), true, false);
         }
 
         if (!cfg.preset.empty()) {
-            projectm_load_preset_file(pm, cfg.preset.c_str(), false);
+            projectm_load_preset_file(pm.get(), cfg.preset.c_str(), false);
         } else if (added > 0) {
-            projectm_playlist_set_position(playlist, 0, true);
+            projectm_playlist_set_position(playlist.get(), 0, true);
         } else {
-            projectm_load_preset_file(pm, "idle://", false);
+            projectm_load_preset_file(pm.get(), "idle://", false);
         }
 
         auto audio = make_audio_source(cfg.audio, cfg.sample_rate);
@@ -106,29 +126,33 @@ int main(int argc, char** argv)
         std::vector<unsigned char> rgb(static_cast<std::size_t>(cfg.width) * cfg.height * 3);
 
         if (!cfg.quiet) {
-            std::cerr << "libprojectM 4.1.8\n"
+            char* ver = projectm_get_version_string();
+            std::cerr << "libprojectM " << (ver != nullptr ? ver : "unknown") << "\n"
                       << "GL " << gl.renderer_string() << "\n"
                       << "render " << cfg.width << "x" << cfg.height << " @ " << cfg.fps
                       << " fps → DDP " << cfg.ddp_host << ":" << cfg.ddp_port << "\n"
-                      << "presets in playlist: " << projectm_playlist_size(playlist) << "\n";
+                      << "presets in playlist: " << projectm_playlist_size(playlist.get()) << "\n";
+            if (ver != nullptr) {
+                projectm_free_string(ver);
+            }
         }
 
         const auto frame_dt = std::chrono::duration<double>(1.0 / cfg.fps);
         auto next = std::chrono::steady_clock::now();
         int frame = 0;
 
-        while (!g_stop.load()) {
+        while (!g_stop.load(std::memory_order_relaxed)) {
             if (cfg.frames > 0 && frame >= cfg.frames) {
                 break;
             }
 
             audio->fill(pcm, feed);
             if (!pcm.empty()) {
-                projectm_pcm_add_float(pm, pcm.data(), feed, PROJECTM_STEREO);
+                projectm_pcm_add_float(pm.get(), pcm.data(), feed, PROJECTM_STEREO);
             }
 
             gl.bind_default();
-            projectm_opengl_render_frame(pm);
+            projectm_opengl_render_frame(pm.get());
             gl.read_rgb(rgb.data());
             ddp.send_rgb_frame(rgb.data(), static_cast<std::size_t>(cfg.width) * cfg.height);
 
@@ -150,11 +174,9 @@ int main(int argc, char** argv)
             write_ppm(cfg.dump_ppm, cfg.width, cfg.height, rgb.data());
         }
 
-        projectm_playlist_destroy(playlist);
-        projectm_destroy(pm);
         return 0;
     } catch (const std::exception& ex) {
-        std::cerr << "milkdrop-ddp: " << ex.what() << "\n";
+        std::cerr << "milk-ddp: " << ex.what() << "\n";
         return 1;
     }
 }

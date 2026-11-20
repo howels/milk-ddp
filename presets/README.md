@@ -1,6 +1,6 @@
 # Presets (GPL-3.0-or-later)
 
-All `.milk` files under this tree are **original works** for milkdrop-ddp,
+All `.milk` files under this tree are **original works** for milk-ddp,
 licensed under the same **GPL-3.0-or-later** terms as the application
 (`LICENSE` here and `../LICENSE`).
 
@@ -14,8 +14,8 @@ strong beat coupling, no texture dependencies.
 
 | Path | Contents |
 |---|---|
-| `milkdrop-ddp-bars.milk` | First-light / CI waveform |
-| `milkdrop-ddp-tunnel.milk` | Soft warp sample |
+| `milk-ddp-bars.milk` | First-light / CI waveform |
+| `milk-ddp-tunnel.milk` | Soft warp sample |
 | `lowres/` | Twelve GPL-3.0 presets for 64×64–256×256 matrices |
 | `LICENSE` | GPL notice for this preset tree |
 
@@ -50,15 +50,15 @@ prefer a denser third-party pack plus textures.
 
 ```bash
 # 64×64 matrix, lowres pack
-./build/milkdrop-ddp --width 64 --height 64 \
+./build/milk-ddp --width 64 --height 64 \
   --preset-path ./presets/lowres --ddp 192.168.1.50:4048 --audio pulse
 
 # 256×256 matrix
-./build/milkdrop-ddp --width 256 --height 256 \
+./build/milk-ddp --width 256 --height 256 \
   --preset-path ./presets/lowres --ddp 192.168.1.50:4048 --audio pulse
 
 # Entire in-tree tree (samples + lowres)
-./build/milkdrop-ddp --width 128 --height 128 \
+./build/milk-ddp --width 128 --height 128 \
   --preset-path ./presets --ddp 192.168.1.50:4048 --audio pulse
 ```
 
@@ -78,7 +78,7 @@ git clone --depth 1 \
   https://github.com/projectM-visualizer/presets-milkdrop-texture-pack.git \
   ~/presets/textures
 
-./build/milkdrop-ddp \
+./build/milk-ddp \
   --preset-path ~/presets/cream-of-the-crop \
   --texture-path ~/presets/textures \
   --ddp 192.168.1.50:4048

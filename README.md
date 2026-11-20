@@ -1,4 +1,4 @@
-# milkdrop-ddp
+# milk-ddp
 
 Headless [projectM](https://github.com/projectM-visualizer/projectm) renderer that draws Milkdrop presets at a matrix-sized resolution and sends each frame as [Distributed Display Protocol (DDP)](https://kno.wled.ge/interfaces/ddp/) UDP packets to [WLED](https://kno.wled.ge/).
 
@@ -23,7 +23,7 @@ Default size is 128×128 (16384 LEDs). That is 35 DDP packets per frame at the 1
 - Optional: `libasound2-dev` for `--audio alsa`
 
 ```bash
-make            # → build/milkdrop-ddp
+make            # → build/milk-ddp
 make validate   # headless DDP self-test
 make reconfigure  # after moving the source tree (CMake caches absolute paths)
 ```
@@ -41,12 +41,12 @@ This program links [libprojectM](https://github.com/projectM-visualizer/projectm
 
 | Priority | How | Network |
 |---|---|---|
-| 1 | `-DMILKDROP_DDP_USE_SYSTEM_PROJECTM=ON` → `find_package(projectM4)` + `projectM4Playlist` | No |
-| 2 | `-DMILKDROP_DDP_PROJECTM_SOURCE=/path/to/projectm` | No |
+| 1 | `-DMILK_DDP_USE_SYSTEM_PROJECTM=ON` → `find_package(projectM4)` + `projectM4Playlist` | No |
+| 2 | `-DMILK_DDP_PROJECTM_SOURCE=/path/to/projectm` | No |
 | 3 | `third_party/projectm/` present (see below) | No |
 | 4 | FetchContent clone of the GitHub tag into `build/_deps/` | Yes, first configure only |
 
-Default (priority 4) downloads from `https://github.com/projectM-visualizer/projectm.git` at tag `v4.1.8` and builds it as a static library into `build/milkdrop-ddp`.
+Default (priority 4) downloads from `https://github.com/projectM-visualizer/projectm.git` at tag `v4.1.8` and builds it as a static library into `build/milk-ddp`.
 
 **Offline / local source:**
 
@@ -68,7 +68,7 @@ Point at any checkout (another disk, mirror, already-fetched `_deps` copy):
 ```bash
 make PROJECTM_SOURCE=/opt/src/projectm
 # or:
-cmake -S . -B build -DMILKDROP_DDP_PROJECTM_SOURCE=/opt/src/projectm
+cmake -S . -B build -DMILK_DDP_PROJECTM_SOURCE=/opt/src/projectm
 ```
 
 Use a distro / prefix install of libprojectM 4.x (headers + `libprojectM::projectM` / `libprojectM::playlist`):
@@ -76,19 +76,19 @@ Use a distro / prefix install of libprojectM 4.x (headers + `libprojectM::projec
 ```bash
 make USE_SYSTEM_PROJECTM=1
 # or:
-cmake -S . -B build -DMILKDROP_DDP_USE_SYSTEM_PROJECTM=ON
+cmake -S . -B build -DMILK_DDP_USE_SYSTEM_PROJECTM=ON
 ```
 
-If FetchContent already populated `build/_deps/projectm-src` on a machine with network, copy that tree (or the whole `build/_deps`) to an offline host and pass it as `MILKDROP_DDP_PROJECTM_SOURCE`, or set `FETCHCONTENT_FULLY_DISCONNECTED=ON` so CMake reuses the existing download without contacting GitHub.
+If FetchContent already populated `build/_deps/projectm-src` on a machine with network, copy that tree (or the whole `build/_deps`) to an offline host and pass it as `MILK_DDP_PROJECTM_SOURCE`, or set `FETCHCONTENT_FULLY_DISCONNECTED=ON` so CMake reuses the existing download without contacting GitHub.
 
-CMake cache keys: `MILKDROP_DDP_PROJECTM_SOURCE`, `MILKDROP_DDP_USE_SYSTEM_PROJECTM`, `MILKDROP_DDP_PROJECTM_GIT_TAG`, `MILKDROP_DDP_PROJECTM_GIT_REPOSITORY`.
+CMake cache keys: `MILK_DDP_PROJECTM_SOURCE`, `MILK_DDP_USE_SYSTEM_PROJECTM`, `MILK_DDP_PROJECTM_GIT_TAG`, `MILK_DDP_PROJECTM_GIT_REPOSITORY`.
 
 ## Run
 
 Point `--ddp` at the WLED controller. Enable DDP (or “Realtime”) on the device. The LED count on WLED must be at least `width * height`.
 
 ```bash
-./build/milkdrop-ddp \
+./build/milk-ddp \
   --width 128 --height 128 --fps 30 \
   --ddp 192.168.1.50:4048 \
   --preset-path ./presets \
@@ -98,7 +98,7 @@ Point `--ddp` at the WLED controller. Enable DDP (or “Realtime”) on the devi
 Live capture from PulseAudio (PipeWire’s Pulse shim is enough):
 
 ```bash
-./build/milkdrop-ddp --ddp 192.168.1.50 --audio pulse --preset-path ./presets
+./build/milk-ddp --ddp 192.168.1.50 --audio pulse --preset-path ./presets
 ```
 
 `--audio pulse` connects to Pulse’s default source. It does **not** exit if the source is missing at start: PCM is silence until a source appears. Source and server subscription events reopen the stream when a device is plugged in, the default source changes, or the previous source is removed.
@@ -108,32 +108,32 @@ Live capture from PulseAudio (PipeWire’s Pulse shim is enough):
 List Pulse and ALSA capture devices:
 
 ```bash
-./build/milkdrop-ddp --list-audio
+./build/milk-ddp --list-audio
 ```
 
 ```bash
-./build/milkdrop-ddp --audio pulse:alsa_input.usb-Device-00.analog-stereo …
-./build/milkdrop-ddp --audio alsa:plughw:1,0 …
-PULSE_SOURCE=alsa_input.usb-Device-00.analog-stereo ./build/milkdrop-ddp --audio pulse …
+./build/milk-ddp --audio pulse:alsa_input.usb-Device-00.analog-stereo …
+./build/milk-ddp --audio alsa:plughw:1,0 …
+PULSE_SOURCE=alsa_input.usb-Device-00.analog-stereo ./build/milk-ddp --audio pulse …
 ```
 
 A 16-bit PCM WAV, looping:
 
 ```bash
-./build/milkdrop-ddp --audio file:/path/to/track.wav --preset-path ./presets --ddp 192.168.1.50
+./build/milk-ddp --audio file:/path/to/track.wav --preset-path ./presets --ddp 192.168.1.50
 ```
 
 Raw stereo s16le on stdin at `--sample-rate`:
 
 ```bash
 ffmpeg -i track.mp3 -f s16le -ac 2 -ar 44100 - \
-  | ./build/milkdrop-ddp --audio stdin --ddp 192.168.1.50 --preset-path ./presets
+  | ./build/milk-ddp --audio stdin --ddp 192.168.1.50 --preset-path ./presets
 ```
 
 Headless / no GPU:
 
 ```bash
-./build/milkdrop-ddp --software-gl --ddp 127.0.0.1:4048 --frames 10 --preset-path ./presets
+./build/milk-ddp --software-gl --ddp 127.0.0.1:4048 --frames 10 --preset-path ./presets
 ```
 
 `--software-gl` sets `LIBGL_ALWAYS_SOFTWARE=1` and prefers llvmpipe. `DISPLAY` may be unset.
@@ -164,7 +164,7 @@ Headless / no GPU:
 Example:
 
 ```bash
-./build/milkdrop-ddp --ddp 192.168.1.50 \
+./build/milk-ddp --ddp 192.168.1.50 \
   --set preset_duration=20 --set beat_sensitivity=1.8 \
   --set hard_cut_enabled=true --set mesh_size=32x24 \
   --preset-path ./presets
@@ -174,19 +174,19 @@ If no `--preset` and no `.milk` files are found, the idle logo preset is loaded 
 
 ## Container
 
-Two images: Debian (`Dockerfile` / `Dockerfile.debian`) and a smaller Alpine musl image (`Dockerfile.alpine`).
+Two images are kept: **Alpine** (`Dockerfile.alpine`, preferred for releases) and **Debian** (`Dockerfile.debian`). The root `Dockerfile` matches the Debian recipe for `docker build .` convenience; release tags and `make docker` set `:latest` to Alpine.
 
 ```bash
-make docker              # milkdrop-ddp:debian (:latest) and milkdrop-ddp:alpine
-make docker-debian
-make docker-alpine
+make docker              # alpine (:latest) and debian
+make docker-alpine       # preferred release image → :alpine and :latest
+make docker-debian       # → :debian
 ```
 
 ```bash
-docker run --rm --network host milkdrop-ddp:debian \
+docker run --rm --network host milk-ddp:latest \
   --software-gl --width 128 --height 128 --fps 30 \
   --ddp 192.168.1.50:4048 \
-  --preset-path /usr/share/milkdrop-ddp/presets \
+  --preset-path /usr/share/milk-ddp/presets \
   --audio sine
 ```
 
@@ -197,7 +197,7 @@ Ship extra preset packs as a volume (do not bake third-party packs into the imag
 ```bash
 docker run --rm --network host \
   -v /opt/presets/cream-of-the-crop:/presets:ro \
-  milkdrop-ddp:alpine --software-gl --ddp 192.168.1.50 --preset-path /presets
+  milk-ddp:alpine --software-gl --ddp 192.168.1.50 --preset-path /presets
 ```
 
 ## Presets
@@ -207,11 +207,11 @@ docker run --rm --network host \
 In-tree presets are original GPL-3.0-or-later works aimed at LED matrices from
 **64×64 through 256×256**:
 
-- `presets/milkdrop-ddp-*.milk` — first light / CI samples  
+- `presets/milk-ddp-*.milk` — first light / CI samples  
 - `presets/lowres/` — twelve matrix-oriented presets (spectrum, bloom, spiral, tunnel, …)
 
 ```bash
-./build/milkdrop-ddp --width 64 --height 64 \
+./build/milk-ddp --width 64 --height 64 \
   --preset-path ./presets/lowres --ddp 192.168.1.50:4048 --audio pulse
 ```
 
@@ -228,7 +228,7 @@ git clone --depth 1 \
   https://github.com/projectM-visualizer/presets-cream-of-the-crop.git \
   ~/presets/cream-of-the-crop
 
-./build/milkdrop-ddp \
+./build/milk-ddp \
   --preset-path ~/presets/cream-of-the-crop \
   --ddp 192.168.1.50:4048 \
   --audio pulse
@@ -241,7 +241,7 @@ git clone --depth 1 \
   https://github.com/projectM-visualizer/presets-milkdrop-texture-pack.git \
   ~/presets/textures
 
-./build/milkdrop-ddp \
+./build/milk-ddp \
   --preset-path ~/presets/cream-of-the-crop \
   --texture-path ~/presets/textures \
   --ddp 192.168.1.50:4048
@@ -262,8 +262,8 @@ GitHub-compatible workflows live under `.github/workflows/`:
 
 | Workflow | Trigger | Action |
 |---|---|---|
-| `ci.yml` | push / PR | Build on Ubuntu, run `tests/validate.sh`, build Debian container, upload binary artifact |
-| `release.yml` | tag `v*` | Build Linux tarball (binary + `LICENSE` + `THIRD_PARTY.md` + sample presets), Debian/Alpine image tarballs, GitHub Release |
+| `ci.yml` | push / PR | Build and validate on amd64 and arm64; build Alpine and Debian images for both arches |
+| `release.yml` | tag `v*` | Host tarballs and container archives for amd64 and arm64; push multi-arch images to GHCR. **Alpine** is preferred (`:vX` / `:latest`); Debian is `:vX-debian` |
 
 Create a release:
 
@@ -274,7 +274,7 @@ git push origin v0.1.0
 
 ### Renovate
 
-[`renovate.json`](renovate.json) tracks GitHub Actions, Docker base images (`debian`, `alpine`), and the libprojectM git tag in `CMakeLists.txt` / `Makefile` (`MILKDROP_DDP_PROJECTM_GIT_TAG` / `vendor-projectm`). Enable the [Renovate GitHub App](https://github.com/apps/renovate) on the repository (or run Renovate in your own CI).
+[`renovate.json`](renovate.json) tracks GitHub Actions, Docker base images (`debian`, `alpine`), and the libprojectM git tag in `CMakeLists.txt` / `Makefile` (`MILK_DDP_PROJECTM_GIT_TAG` / `vendor-projectm`). Enable the [Renovate GitHub App](https://github.com/apps/renovate) on the repository (or run Renovate in your own CI).
 
 ## Validate without a matrix or a display
 
@@ -282,14 +282,14 @@ git push origin v0.1.0
 make validate
 ```
 
-`tests/validate.sh` starts `tests/ddp_listen.py` on a high UDP port, runs `milkdrop-ddp --software-gl` for a few 32×32 frames, and checks that:
+`tests/validate.sh` starts `tests/ddp_listen.py` on a high UDP port, runs `milk-ddp --software-gl` for a few 32×32 frames, and checks that:
 
 - each packet has a version-1 DDP header, RGB24 type `0x0B`, and sequence 1–15
 - byte offsets reconstruct `width * height * 3` bytes
 - the Push flag arrives on the last packet of each frame
 - the last frame is not all zeros
 
-A PPM of that frame is written to `/tmp/milkdrop-ddp-last.ppm`.
+A PPM of that frame is written to `/tmp/milk-ddp-last.ppm`.
 
 ## Mapping to a physical matrix
 
@@ -299,8 +299,8 @@ Pixels are sent row-major, left to right, top to bottom, RGB888. That matches a 
 
 | Component | Licence |
 |---|---|
-| milkdrop-ddp application (`src/`, `tests/`, build files) | **GPL-3.0-or-later** (`LICENSE`) |
-| In-tree presets (`presets/milkdrop-ddp-*.milk`) | **GPL-3.0-or-later** (original to this repo) |
+| milk-ddp application (`src/`, `tests/`, build files) | **GPL-3.0-or-later** (`LICENSE`) |
+| In-tree presets (`presets/milk-ddp-*.milk`) | **GPL-3.0-or-later** (original to this repo) |
 | libprojectM (FetchContent / local / system) | **LGPL-2.1-or-later** — see `THIRD_PARTY.md` |
 | External preset packs (Cream of the Crop, textures, …) | **Not shipped**; each pack’s own terms |
 

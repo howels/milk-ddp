@@ -202,7 +202,7 @@ public:
         }
 
         pa_threaded_mainloop_lock(mainloop_);
-        context_ = pa_context_new(pa_threaded_mainloop_get_api(mainloop_), "milkdrop-ddp");
+        context_ = pa_context_new(pa_threaded_mainloop_get_api(mainloop_), "milk-ddp");
         if (context_ == nullptr) {
             pa_threaded_mainloop_unlock(mainloop_);
             pa_threaded_mainloop_free(mainloop_);
@@ -378,7 +378,7 @@ private:
 
         stream_ = pa_stream_new(context_, "visualiser", &spec, nullptr);
         if (stream_ == nullptr) {
-            std::cerr << "milkdrop-ddp: PulseAudio stream create failed: "
+            std::cerr << "milk-ddp: PulseAudio stream create failed: "
                       << pa_strerror(pa_context_errno(context_)) << "\n";
             return;
         }
@@ -390,7 +390,7 @@ private:
             PA_STREAM_ADJUST_LATENCY | PA_STREAM_AUTO_TIMING_UPDATE);
 
         if (pa_stream_connect_record(stream_, source, &attr, flags) < 0) {
-            std::cerr << "milkdrop-ddp: PulseAudio connect_record(" << source
+            std::cerr << "milk-ddp: PulseAudio connect_record(" << source
                       << ") failed: " << pa_strerror(pa_context_errno(context_)) << "\n";
             close_stream_locked();
             active_source_.clear();
@@ -502,12 +502,12 @@ private:
         switch (pa_stream_get_state(stream)) {
         case PA_STREAM_READY:
             self->connected_.store(true, std::memory_order_relaxed);
-            std::cerr << "milkdrop-ddp: PulseAudio recording from "
+            std::cerr << "milk-ddp: PulseAudio recording from "
                       << (self->active_source_.empty() ? "(default)" : self->active_source_)
                       << "\n";
             break;
         case PA_STREAM_FAILED:
-            std::cerr << "milkdrop-ddp: PulseAudio stream failed: "
+            std::cerr << "milk-ddp: PulseAudio stream failed: "
                       << pa_strerror(pa_context_errno(self->context_)) << "\n";
             self->connected_.store(false, std::memory_order_relaxed);
             break;
@@ -585,7 +585,7 @@ public:
         : sample_rate_(sample_rate), device_(device.empty() ? "default" : std::move(device))
     {
         if (!try_open()) {
-            std::cerr << "milkdrop-ddp: ALSA device \"" << device_
+            std::cerr << "milk-ddp: ALSA device \"" << device_
                       << "\" not open yet; will retry when it appears\n";
         }
     }
@@ -614,7 +614,7 @@ public:
             return frames;
         }
         if (got < 0) {
-            std::cerr << "milkdrop-ddp: ALSA read failed: " << snd_strerror(static_cast<int>(got))
+            std::cerr << "milk-ddp: ALSA read failed: " << snd_strerror(static_cast<int>(got))
                       << "\n";
             close();
             return frames;
@@ -639,7 +639,7 @@ private:
         err = snd_pcm_set_params(pcm_, SND_PCM_FORMAT_FLOAT_LE, SND_PCM_ACCESS_RW_INTERLEAVED, 2,
                                  static_cast<unsigned int>(sample_rate_), 1, 500000);
         if (err < 0) {
-            std::cerr << "milkdrop-ddp: ALSA set_params(" << device_
+            std::cerr << "milk-ddp: ALSA set_params(" << device_
                       << ") failed: " << snd_strerror(err) << "\n";
             close();
             return false;
@@ -647,13 +647,13 @@ private:
 
         err = snd_pcm_prepare(pcm_);
         if (err < 0) {
-            std::cerr << "milkdrop-ddp: ALSA prepare(" << device_
+            std::cerr << "milk-ddp: ALSA prepare(" << device_
                       << ") failed: " << snd_strerror(err) << "\n";
             close();
             return false;
         }
 
-        std::cerr << "milkdrop-ddp: ALSA recording from " << device_ << "\n";
+        std::cerr << "milk-ddp: ALSA recording from " << device_ << "\n";
         return true;
     }
 
@@ -700,7 +700,7 @@ int list_pulse_sources()
         return 1;
     }
 
-    pa_context* context = pa_context_new(pa_mainloop_get_api(mainloop), "milkdrop-ddp-list");
+    pa_context* context = pa_context_new(pa_mainloop_get_api(mainloop), "milk-ddp-list");
     if (context == nullptr) {
         pa_mainloop_free(mainloop);
         std::cout << "PulseAudio/PipeWire: context create failed\n";
@@ -940,9 +940,9 @@ int list_audio_devices()
 #endif
 
     std::cout << "Examples:\n"
-              << "  milkdrop-ddp --audio pulse …\n"
-              << "  milkdrop-ddp --audio pulse:SOURCE …\n"
-              << "  milkdrop-ddp --audio alsa …\n"
-              << "  milkdrop-ddp --audio alsa:plughw:1,0 …\n";
+              << "  milk-ddp --audio pulse …\n"
+              << "  milk-ddp --audio pulse:SOURCE …\n"
+              << "  milk-ddp --audio alsa …\n"
+              << "  milk-ddp --audio alsa:plughw:1,0 …\n";
     return rc;
 }

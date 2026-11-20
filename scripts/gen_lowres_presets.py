@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate original GPL-3.0 Milkdrop presets for milkdrop-ddp LED matrices.
+"""Generate original GPL-3.0 Milkdrop presets for milk-ddp LED matrices.
 
 Motifs follow popular Milkdrop families (spectrum, tunnel, radial bloom,
 spiral, circle wave, plasma) but equations and parameters are newly written

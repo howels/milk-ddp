@@ -1,6 +1,6 @@
 # Third-party components
 
-milkdrop-ddp itself is licensed under the **GNU General Public License v3 or later**
+milk-ddp itself is licensed under the **GNU General Public License v3 or later**
 (see `LICENSE`). The components below have their own terms. Recipients of
 binaries must receive the corresponding source offers required by those licences.
 
@@ -9,14 +9,14 @@ binaries must receive the corresponding source offers required by those licences
 | Field | Value |
 |---|---|
 | Project | [projectM-visualizer/projectm](https://github.com/projectM-visualizer/projectm) |
-| Default version | tag `v4.1.8` (`MILKDROP_DDP_PROJECTM_GIT_TAG`) |
+| Default version | tag `v4.1.8` (`MILK_DDP_PROJECTM_GIT_TAG`) |
 | Licence | **GNU LGPL-2.1 or later** |
-| How obtained | FetchContent, `third_party/projectm/`, `MILKDROP_DDP_PROJECTM_SOURCE`, or system `find_package(projectM4)` |
+| How obtained | FetchContent, `third_party/projectm/`, `MILK_DDP_PROJECTM_SOURCE`, or system `find_package(projectM4)` |
 
-When milkdrop-ddp is distributed as a binary that statically or dynamically
+When milk-ddp is distributed as a binary that statically or dynamically
 links libprojectM, the LGPL requires that recipients can obtain the libprojectM
 source used for that build and can relink against a modified libprojectM. The
-matching tag is recorded in CMake (`MILKDROP_DDP_PROJECTM_GIT_TAG`) and in
+matching tag is recorded in CMake (`MILK_DDP_PROJECTM_GIT_TAG`) and in
 release assets.
 
 libprojectM also vendors its own dependencies (for example projectM-eval, hlslparser,
@@ -27,7 +27,7 @@ libprojectM source tree.
 
 All `.milk` files under `presets/` (including `presets/lowres/`) were written
 for this repository for LED matrices **64×64 through 256×256**. They are part
-of milkdrop-ddp and are covered by **GPL-3.0-or-later**. See `presets/LICENSE`
+of milk-ddp and are covered by **GPL-3.0-or-later**. See `presets/LICENSE`
 and `presets/README.md`.
 
 ## Recommended external preset packs (not shipped)
