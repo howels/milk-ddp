@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
-COPY CMakeLists.txt ./
+COPY CMakeLists.txt LICENSE THIRD_PARTY.md ./
 COPY src ./src
 COPY presets ./presets
 COPY tests ./tests

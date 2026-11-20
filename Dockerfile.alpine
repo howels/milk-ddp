@@ -13,7 +13,7 @@ RUN apk add --no-cache \
         python3
 
 WORKDIR /src
-COPY CMakeLists.txt ./
+COPY CMakeLists.txt LICENSE THIRD_PARTY.md ./
 COPY src ./src
 COPY presets ./presets
 COPY tests ./tests
