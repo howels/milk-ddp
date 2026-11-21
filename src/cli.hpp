@@ -19,6 +19,9 @@ struct Config {
     int frames = 0;  // 0 = run until signal
     std::string dump_ppm;
     bool software_gl = false;
+    // Default: log DDP send errors and keep rendering (container-friendly).
+    // --close-on-disconnect restores exit-on-send-failure.
+    bool close_on_disconnect = false;
     bool shuffle = false;
     // Seconds each playlist preset is shown before the next soft/hard cut.
     // Negative means leave libprojectM's default (30 s).

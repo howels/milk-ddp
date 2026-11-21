@@ -50,8 +50,7 @@ COPY --from=build /usr/bin/milk-ddp /usr/bin/milk-ddp
 COPY --from=build /usr/share/milk-ddp /usr/share/milk-ddp
 COPY --from=build /usr/libexec/milk-ddp /usr/libexec/milk-ddp
 
-ENV GALLIUM_DRIVER=llvmpipe \
-    MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
-
+# Do not bake GALLIUM_DRIVER / MESA_LOADER_DRIVER_OVERRIDE here: that forces
+# llvmpipe even when /dev/dri is passed through. Use --software-gl for CPU GL.
 ENTRYPOINT ["/usr/bin/milk-ddp"]
 CMD ["--software-gl", "--preset-path", "/usr/share/milk-ddp/presets", "--help"]

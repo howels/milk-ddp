@@ -1,0 +1,308 @@
+# MoonLight stack (rootful Podman) — PipeWire + sendspin + squeezelite + milk-ddp + MoonLight.
+#
+# milk-ddp captures Pulse monitor `sendspin.monitor` and sends DDP UDP to a peer.
+# Ports (hostNetwork, all unprivileged):
+#   TCP 8080  — MoonLight HTTP UI
+#   UDP 4048  — milk-ddp / WLED DDP default (use --ddp HOST:4048 for a matrix)
+#   UDP 4049  — common MoonLight DDP listen port (this file targets 127.0.0.1:4049)
+# See moonlight-milkddp-rootless.yaml for the rootless variant.
+#
+# GPU (Panfrost / Mali on NanoPi R3S):
+#   - Pod-level supplementalGroups must list host video + render GIDs
+#     (`getent group video render`). Container-level supplementalGroups is ignored.
+#   - resources.limits "podman.io/device=/dev/dri" grants the devices cgroup
+#     (hostPath alone mounts nodes but open() still gets EACCES).
+#   - milk-ddp image ≤v0.1.3 bakes GALLIUM_DRIVER=llvmpipe; override to panfrost
+#     (or rebuild from a tree that dropped those ENV lines). A new image helps
+#     but is not required if the env overrides below are set.
+#
+# Play (rootful — needs sudo for the podman machine that owns the root store):
+#   sudo podman kube play examples/podman/moonlight-milkddp-rootful.yaml \
+#     --network=host --replace
+#
+# Tear down:
+#   sudo podman kube down examples/podman/moonlight-milkddp-rootful.yaml
+#
+# Host data lives under /srv/moonlight/ (not a home directory). Create once:
+#   sudo mkdir -p /srv/moonlight/MoonLight /srv/moonlight/sendspin-cpp-cli
+#   sudo chown -R 1000:1000 /srv/moonlight
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sendspin-pulse
+  namespace: moonlight
+data:
+  client.conf: |
+    autospawn = no
+    default-server = unix:/run/pulse/runtime/native
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: moonlight-data
+  annotations:
+    volume.podman.io/driver: local
+    # MoonLight state on the host.
+    volume.podman.io/device: /srv/moonlight/MoonLight/
+    volume.podman.io/type: none
+    volume.podman.io/mount-options: bind
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sendspin-data
+  annotations:
+    volume.podman.io/driver: local
+    # sendspin-cpp-cli --state-dir (client_id / blob-keypair).
+    volume.podman.io/device: /srv/moonlight/sendspin-cpp-cli
+    volume.podman.io/type: none
+    volume.podman.io/mount-options: bind
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: moonlight-
+  name: moonlight-nanopi-r3s
+  namespace: moonlight
+spec:
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  hostname: moonlight-nanopi-r3s
+  subdomain: moonlight
+  restartPolicy: Always
+  terminationGracePeriodSeconds: 10
+  securityContext:
+    fsGroup: 1000
+    runAsGroup: 1000
+    runAsUser: 1000
+    # NanoPi R3S: video=44, render=105. Re-check with getent on other hosts.
+    supplementalGroups:
+      - 44
+      - 105
+  initContainers:
+  - name: tools
+    image: docker.io/library/busybox:musl
+    imagePullPolicy: IfNotPresent
+    securityContext:
+      runAsUser: 0
+      runAsGroup: 0
+    command:
+    - /bin/sh
+    - -c
+    - cp /bin/busybox /tools/busybox && chmod 755 /tools/busybox
+    volumeMounts:
+    - name: moonlight-tools
+      mountPath: /tools
+  containers:
+  - name: pipewire
+    image: ghcr.io/howels/pipewire:latest
+    imagePullPolicy: Always
+    env:
+    - name: XDG_RUNTIME_DIR
+      value: /run/pulse/runtime
+    - name: PULSE_RUNTIME_PATH
+      value: /run/pulse/runtime
+    readinessProbe:
+      exec:
+        command:
+        - /bin/sh
+        - -c
+        - test -S /run/pulse/runtime/native
+      failureThreshold: 3
+      initialDelaySeconds: 1
+      periodSeconds: 2
+      successThreshold: 1
+      timeoutSeconds: 1
+    volumeMounts:
+    - mountPath: /run/pulse
+      name: pulse-runtime
+  - name: sendspin
+    image: ghcr.io/howels/sendspin:latest
+    imagePullPolicy: Always
+    args:
+    - daemon
+    - --name
+    - $(hostname)-sendspin
+    - --url
+    - ws://${SENDSPIN_SERVER}:8927/sendspin
+    - --audio-format
+    - flac:22050:16:2
+    - --settings-dir
+    - /data
+    env:
+    - name: SENDSPIN_SERVER
+      value: "192.168.0.190"
+    - name: PULSE_SERVER
+      value: unix:/run/pulse/runtime/native
+    - name: XDG_RUNTIME_DIR
+      value: /tmp
+    volumeMounts:
+    - mountPath: /run/pulse
+      name: pulse-runtime
+    - mountPath: /data
+      name: sendspin-data
+  - name: squeezelite
+    image: ghcr.io/howels/squeezelite:latest
+    imagePullPolicy: Always
+    args:
+    - -n
+    - $(hostname)-squeezelite
+    - -s
+    - ${SQUEEZELITE_SERVER}
+    - -U
+    - Master
+    env:
+    - name: SQUEEZELITE_SERVER
+      value: "192.168.0.190"
+    - name: PULSE_SERVER
+      value: unix:/run/pulse/runtime/native
+    - name: XDG_RUNTIME_DIR
+      value: /tmp
+    volumeMounts:
+    - mountPath: /run/pulse
+      name: pulse-runtime
+  - name: milk-ddp
+    image: ghcr.io/howels/milk-ddp:v0.1.3
+    imagePullPolicy: Always
+    args:
+    # Omit --software-gl so Mesa can use Panfrost when /dev/dri is usable.
+    - --preset-path
+    - /usr/share/milk-ddp/presets
+    - --audio
+    - pulse:sendspin.monitor
+    # 4048 = milk-ddp/WLED default; 4049 = typical MoonLight DDP input.
+    - --ddp
+    - 127.0.0.1:4049
+    - --fps
+    - "30"
+    env:
+    - name: PULSE_SERVER
+      value: unix:/run/pulse/runtime/native
+    - name: XDG_RUNTIME_DIR
+      value: /tmp
+    - name: HOME
+      value: /tmp
+    - name: XDG_CACHE_HOME
+      value: /tmp/cache
+    # Defeat image-baked llvmpipe (≤v0.1.3). Prefer explicit panfrost on this SoC.
+    - name: GALLIUM_DRIVER
+      value: panfrost
+    - name: MESA_LOADER_DRIVER_OVERRIDE
+      value: panfrost
+    - name: LIBGL_ALWAYS_SOFTWARE
+      value: "0"
+    resources:
+      requests:
+        "podman.io/device=/dev/dri": 1
+      limits:
+        "podman.io/device=/dev/dri": 1
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      allowPrivilegeEscalation: false
+      privileged: false
+    volumeMounts:
+    - mountPath: /run/pulse
+      name: pulse-runtime
+    - mountPath: /etc/pulse/client.conf
+      name: pulse-config
+      subPath: client.conf
+    - mountPath: /dev/dri
+      name: dri
+  - name: moonlight
+    image: ghcr.io/moonmodules/moonlight:7.1.0-dev.170
+    imagePullPolicy: Always
+    command:
+    - /tools/busybox
+    - sh
+    - -c
+    - sleep 5; exec "$0" "$@"
+    - /usr/bin/MoonLight
+    args:
+    - --no-browser
+    env:
+    - name: PULSE_SERVER
+      value: unix:/run/pulse/runtime/native
+    - name: XDG_RUNTIME_DIR
+      value: /tmp
+    - name: HOME
+      value: /data
+    - name: XDG_DATA_HOME
+      value: /data
+    ports:
+    # hostNetwork: host ports. All unprivileged (>1024).
+    - containerPort: 8080
+      protocol: TCP
+    - containerPort: 11988
+      protocol: TCP
+    - containerPort: 11988
+      protocol: UDP
+    - containerPort: 4048
+      protocol: UDP
+    - containerPort: 4049
+      protocol: UDP
+    readinessProbe:
+      failureThreshold: 3
+      initialDelaySeconds: 2
+      periodSeconds: 5
+      successThreshold: 1
+      tcpSocket:
+        port: 8080
+      timeoutSeconds: 1
+    securityContext:
+      capabilities:
+        add:
+        # Namespaced; does not require rootful Podman by itself.
+        - NET_RAW
+      fsGroup: 1000
+      runAsGroup: 1000
+      runAsUser: 1000
+    volumeMounts:
+    - mountPath: /run/pulse
+      name: pulse-runtime
+    - mountPath: /opt/pulse
+      name: pulse-libs
+      readOnly: true
+    - mountPath: /etc/pulse/client.conf
+      name: pulse-config
+      subPath: client.conf
+    - mountPath: /data
+      name: moonlight-data
+    - mountPath: /tmp
+      name: moonlight-tmp
+    - mountPath: /tools
+      name: moonlight-tools
+      readOnly: true
+  volumes:
+  - name: dri
+    hostPath:
+      path: /dev/dri
+  - emptyDir: {}
+    name: pulse-runtime
+  - emptyDir: {}
+    name: pulse-libs
+  - emptyDir: {}
+    name: moonlight-tmp
+  - emptyDir: {}
+    name: moonlight-tools
+  - name: moonlight-data
+    persistentVolumeClaim:
+      claimName: moonlight-data
+  - name: sendspin-data
+    persistentVolumeClaim:
+      claimName: sendspin-data
+  - configMap:
+      defaultMode: 420
+      name: sendspin-pulse
+    name: pulse-config

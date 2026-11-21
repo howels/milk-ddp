@@ -27,6 +27,8 @@ void print_usage()
         << "  --frames N               Render N frames then exit (0 = until SIGINT)\n"
         << "  --dump-ppm FILE          Write the last RGB frame as a PPM image\n"
         << "  --software-gl            Force Mesa llvmpipe (no GPU, no display)\n"
+        << "  --close-on-disconnect    Exit if the DDP endpoint is offline (default: log\n"
+        << "                           \"DDP endpoint offline\" and keep rendering)\n"
         << "  --shuffle                Randomise playlist selection (off by default)\n"
         << "  --no-shuffle             Play presets in alphabetical path order (default)\n"
         << "  --preset-duration SEC    Seconds each playlist preset is shown\n"
@@ -141,6 +143,8 @@ Config parse_args(int argc, char** argv)
             cfg.dump_ppm = require_value(i, argc, argv, a);
         } else if (std::strcmp(a, "--software-gl") == 0) {
             cfg.software_gl = true;
+        } else if (std::strcmp(a, "--close-on-disconnect") == 0) {
+            cfg.close_on_disconnect = true;
         } else if (std::strcmp(a, "--shuffle") == 0) {
             cfg.shuffle = true;
         } else if (std::strcmp(a, "--no-shuffle") == 0) {

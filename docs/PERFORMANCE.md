@@ -37,6 +37,8 @@ matter more.
 
 1. **Use a GPU** — omit `--software-gl` when an EGL/GBM or desktop GPU context
    is available. Fractal shaders move from CPU SIMD to the GPU; readback remains.
+   Container hosts: pass `/dev/dri` via Podman `--device` (not only a bind mount)
+   and clear baked `llvmpipe` env overrides — see [container-gpu.md](container-gpu.md).
 2. **Lower resolution** — match the matrix (`--width` / `--height`). 128² is far
    cheaper than 256² for the same preset; WLED still maps the buffer.
 3. **Prefer lighter presets on software GL** — `presets/lowres/` and simple

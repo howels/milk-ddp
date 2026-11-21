@@ -163,7 +163,7 @@ int main(int argc, char** argv)
         }
 
         auto audio = make_audio_source(cfg.audio, cfg.sample_rate);
-        DdpSender ddp(cfg.ddp_host, cfg.ddp_port);
+        DdpSender ddp(cfg.ddp_host, cfg.ddp_port, cfg.close_on_disconnect);
 
         const unsigned int pcm_per_frame =
             static_cast<unsigned int>(audio->sample_rate() / std::max(1, cfg.fps));

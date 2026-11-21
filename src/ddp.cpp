@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cerrno>
 #include <cstring>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 
@@ -80,7 +81,8 @@ int connect_udp(const std::string& host, uint16_t port, std::string& peer_out)
 }
 }  // namespace
 
-DdpSender::DdpSender(const std::string& host, uint16_t port)
+DdpSender::DdpSender(const std::string& host, uint16_t port, bool close_on_disconnect)
+    : close_on_disconnect_(close_on_disconnect)
 {
     fd_ = connect_udp(host, port, peer_);
     packet_.reserve(kHeader + kMaxRgbBytes);
@@ -119,7 +121,20 @@ void DdpSender::send_rgb_frame(const unsigned char* rgb, std::size_t pixel_count
 
         const ssize_t n = ::send(fd_, packet_.data(), packet_.size(), 0);
         if (n < 0 || static_cast<std::size_t>(n) != packet_.size()) {
-            throw std::runtime_error(std::string("DDP send() failed: ") + std::strerror(errno));
+            const int err = errno;
+            const char* detail = (n < 0) ? std::strerror(err) : "short write";
+            const std::string msg =
+                std::string("DDP endpoint offline (") + peer_ + ": " + detail + ")";
+            if (close_on_disconnect_) {
+                throw std::runtime_error(msg);
+            }
+            const auto now = std::chrono::steady_clock::now();
+            if (now >= next_send_error_log_) {
+                std::cerr << "milk-ddp: " << msg << " (continuing)\n";
+                next_send_error_log_ = now + std::chrono::seconds(1);
+            }
+            // Drop the rest of this frame; try again on the next frame.
+            return;
         }
         offset += chunk;
     }

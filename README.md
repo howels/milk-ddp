@@ -85,7 +85,7 @@ CMake cache keys: `MILK_DDP_PROJECTM_SOURCE`, `MILK_DDP_USE_SYSTEM_PROJECTM`, `M
 
 ## Run
 
-Point `--ddp` at the WLED controller. Enable DDP (or “Realtime”) on the device. The LED count on WLED must be at least `width * height`.
+Point `--ddp` at the WLED controller (default port **4048**; MoonLight often listens on **4049**). Enable DDP (or “Realtime”) on the device. The LED count on WLED must be at least `width * height`. If the UDP endpoint is down, milk-ddp logs `DDP endpoint offline` (rate-limited) and keeps rendering; pass `--close-on-disconnect` to exit instead.
 
 ```bash
 ./build/milk-ddp \
@@ -154,6 +154,7 @@ Headless / no GPU:
 | `--frames N` | Exit after N frames |
 | `--dump-ppm FILE` | Write the last RGB frame as binary PPM |
 | `--software-gl` | Force Mesa software rasteriser |
+| `--close-on-disconnect` | Exit when the DDP endpoint is offline (default: log `DDP endpoint offline` at most once per second and keep rendering) |
 | `--shuffle` | Randomise playlist selection (off by default) |
 | `--no-shuffle` | Alphabetical full-path order (default) |
 | `--preset-duration SEC` | Seconds each playlist preset is shown before switching (default 30) |
@@ -219,6 +220,18 @@ docker run --rm --network host ghcr.io/howels/milk-ddp:latest \
 ```
 
 `--network host` is the usual way to reach a LAN WLED node from the container. Pulse capture needs `/run/user/$UID/pulse` (or the PipeWire socket) bind-mounted; sine and file sources do not. Hotplug still works inside the container as long as the Pulse/PipeWire socket stays mounted.
+
+### Host GPU (DRM / Mesa)
+
+Omit `--software-gl` and pass the host DRM nodes into the container. A
+`hostPath` of `/dev/dri` alone is not enough under Podman: use
+`--device=/dev/dri` (or kube-play `resources.limits.podman.io/device=/dev/dri`)
+plus pod-level `supplementalGroups` for host `video` / `render` GIDs. Tags
+≤`v0.1.3` bake `llvmpipe` ENV — set `MESA_LOADER_DRIVER_OVERRIDE=panfrost` (or
+rebuild). Full procedure: [docs/container-gpu.md](docs/container-gpu.md).
+
+MoonLight + milk-ddp kube-play examples (rootful and rootless, ports 8080 /
+4049): [examples/podman/](examples/podman/).
 
 Ship extra preset packs as a volume (do not bake third-party packs into the image unless their licence allows it):
 
