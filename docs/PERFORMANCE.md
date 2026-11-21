@@ -46,7 +46,18 @@ matter more.
 4. **`--set mesh_size=24x18`** (or similar) — modest save on warp mesh fill.
 5. **Lower `--fps`** — 15–20 fps is often enough on LED matrices and cuts render
    + readback rate linearly.
-6. **Avoid extra post-process in presets** — fewer `GetBlur*` taps and shorter
+6. **`--transition-half-fps`** — soft cuts render both presets (~2× GPU). This
+   paces at `fps/2` for `soft_cut_duration` and doubles PCM feed so wall-clock
+   audio stays correct. Off by default; enable on Mali / LED hosts that hitch
+   during blends. Tune length with `--set soft_cut_duration=1.5`.
+7. **`--warm-presets` (default on for playlists)** — the pause *before* a soft
+   cut is `Preset::Initialize()` compiling warp/comp GLSL on the GL thread.
+   At startup milk-ddp hard-cuts through every playlist preset (1 frame each,
+   no DDP/readback) and prints `shader cache i/n (pct%)` progress on stderr so
+   Mesa can populate its on-disk shader cache. Use `--no-warm-presets` to skip.
+   Keep `XDG_CACHE_HOME` on a persistent volume (not a tmpfs wiped each pod
+   recreate) so the cache survives restarts.
+8. **Avoid extra post-process in presets** — fewer `GetBlur*` taps and shorter
    fractal iteration caps (the in-tree `presets/fractal/` set uses moderate loops).
 
 Not worth it for typical 64–256 matrices: SIMD Y-flip, packing RGB565, or

@@ -22,6 +22,9 @@ void print_usage()
         << "  --preset FILE|idle://    Load one preset instead of cycling the playlist\n"
         << "  --audio SPEC             sine | pulse | pulse:SOURCE | alsa | alsa:DEVICE\n"
         << "                           | file:PATH | stdin  (default sine)\n"
+        << "  --audio-gain F           Linear amplitude (default 1.0). Pulse/PipeWire:\n"
+        << "                           record-stream soft volume; else scale in fill().\n"
+        << "                           Quiet monitors: try 1.5–4.0\n"
         << "  --list-audio             List Pulse and ALSA capture devices and exit\n"
         << "  --sample-rate N          PCM sample rate for sine/stdin (default 44100)\n"
         << "  --frames N               Render N frames then exit (0 = until SIGINT)\n"
@@ -36,6 +39,13 @@ void print_usage()
         << "  --switch-delay SEC       Alias for --preset-duration\n"
         << "  --quiet                  Suppress startup status, preset lines, and progress\n"
         << "  --progress               Print periodic status with measured fps (off by default)\n"
+        << "  --transition-half-fps    During soft cuts, render at fps/2 (off by default).\n"
+        << "                           Matches ~2× GPU cost of blending both presets.\n"
+        << "  --no-transition-half-fps Disable --transition-half-fps (default)\n"
+        << "  --warm-presets           At startup, hard-cut through the playlist and\n"
+        << "                           cache warp/comp shaders (default for playlists).\n"
+        << "                           Prints progress on stderr while warming.\n"
+        << "  --no-warm-presets        Skip startup shader warm-up\n"
         << "  --set KEY=VALUE          projectM property (repeatable). Keys:\n"
         << "                           beat_sensitivity, hard_cut_duration,\n"
         << "                           hard_cut_enabled, hard_cut_sensitivity,\n"
@@ -82,6 +92,16 @@ static double parse_positive_seconds(const std::string& s, const char* name)
                                  " (want seconds in (0, 86400])");
     }
     return v;
+}
+
+static float parse_audio_gain(const std::string& s)
+{
+    char* end = nullptr;
+    const double v = std::strtod(s.c_str(), &end);
+    if (end == s.c_str() || *end != '\0' || !(v >= 0.0) || v > 256.0) {
+        throw std::runtime_error("invalid --audio-gain: " + s + " (want float in [0, 256])");
+    }
+    return static_cast<float>(v);
 }
 
 static void parse_ddp(const std::string& spec, Config& cfg)
@@ -134,6 +154,10 @@ Config parse_args(int argc, char** argv)
             cfg.audio = require_value(i, argc, argv, a);
         } else if (starts_with(a, "--audio=")) {
             cfg.audio = a + 8;
+        } else if (std::strcmp(a, "--audio-gain") == 0) {
+            cfg.audio_gain = parse_audio_gain(require_value(i, argc, argv, a));
+        } else if (starts_with(a, "--audio-gain=")) {
+            cfg.audio_gain = parse_audio_gain(a + 13);
         } else if (std::strcmp(a, "--sample-rate") == 0) {
             cfg.sample_rate =
                 parse_int_range(require_value(i, argc, argv, a), "sample-rate", 8000, 192000);
@@ -165,6 +189,14 @@ Config parse_args(int argc, char** argv)
             cfg.quiet = true;
         } else if (std::strcmp(a, "--progress") == 0) {
             cfg.progress = true;
+        } else if (std::strcmp(a, "--transition-half-fps") == 0) {
+            cfg.transition_half_fps = true;
+        } else if (std::strcmp(a, "--no-transition-half-fps") == 0) {
+            cfg.transition_half_fps = false;
+        } else if (std::strcmp(a, "--warm-presets") == 0) {
+            cfg.warm_presets = true;
+        } else if (std::strcmp(a, "--no-warm-presets") == 0) {
+            cfg.warm_presets = false;
         } else if (std::strcmp(a, "--list-audio") == 0) {
             cfg.list_audio = true;
         } else if (std::strcmp(a, "--set") == 0) {

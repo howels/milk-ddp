@@ -190,8 +190,10 @@ private:
 // restarting the process. fill() returns silence while disconnected.
 class PulseAudio final : public AudioSource {
 public:
-    PulseAudio(int sample_rate, std::string device)
-        : sample_rate_(sample_rate), device_(std::move(device))
+    // gain is applied as Pulse/PipeWire record-stream soft volume (server-side),
+    // not a per-sample multiply in the render thread.
+    PulseAudio(int sample_rate, std::string device, float gain)
+        : sample_rate_(sample_rate), device_(std::move(device)), gain_(gain)
     {
         // ~1 s of stereo float at the configured rate.
         ring_.assign(static_cast<std::size_t>(sample_rate_) * 2, 0.0f);
@@ -496,15 +498,41 @@ private:
         }
     }
 
+    void apply_stream_volume_locked()
+    {
+        if (stream_ == nullptr || gain_ == 1.0f) {
+            return;
+        }
+        const uint32_t idx = pa_stream_get_index(stream_);
+        if (idx == PA_INVALID_INDEX) {
+            return;
+        }
+        // Soft volume on the source-output (record stream). Linear amplitude may
+        // exceed 0 dBFS; PipeWire/Pulse apply it in the mixing graph.
+        pa_cvolume vol;
+        const pa_volume_t v = pa_sw_volume_from_linear(static_cast<double>(gain_));
+        const uint8_t ch = pa_stream_get_sample_spec(stream_)->channels;
+        pa_cvolume_set(&vol, ch, v);
+        pa_operation* op =
+            pa_context_set_source_output_volume(context_, idx, &vol, nullptr, nullptr);
+        if (op != nullptr) {
+            pa_operation_unref(op);
+        } else {
+            std::cerr << "milk-ddp: PulseAudio set_source_output_volume failed: "
+                      << pa_strerror(pa_context_errno(context_)) << "\n";
+        }
+    }
+
     static void on_stream_state(pa_stream* stream, void* userdata)
     {
         auto* self = static_cast<PulseAudio*>(userdata);
         switch (pa_stream_get_state(stream)) {
         case PA_STREAM_READY:
             self->connected_.store(true, std::memory_order_relaxed);
+            self->apply_stream_volume_locked();
             std::cerr << "milk-ddp: PulseAudio recording from "
                       << (self->active_source_.empty() ? "(default)" : self->active_source_)
-                      << "\n";
+                      << "  soft-volume gain=" << self->gain_ << "\n";
             break;
         case PA_STREAM_FAILED:
             std::cerr << "milk-ddp: PulseAudio stream failed: "
@@ -559,6 +587,7 @@ private:
     int sample_rate_;
     std::string device_;
     std::string active_source_;
+    float gain_ = 1.0f;
 
     pa_threaded_mainloop* mainloop_ = nullptr;
     pa_context* context_ = nullptr;
@@ -875,44 +904,80 @@ int list_alsa_devices()
 }
 #endif
 
+// Software gain for non-Pulse backends (one pass inside fill, not the GL thread
+// beyond what fill already does). Pulse uses server soft volume instead.
+class GainAudio final : public AudioSource {
+public:
+    GainAudio(std::unique_ptr<AudioSource> inner, float gain)
+        : inner_(std::move(inner)), gain_(gain)
+    {
+    }
+
+    int sample_rate() const override { return inner_->sample_rate(); }
+
+    unsigned int fill(std::vector<float>& interleaved, unsigned int frames) override
+    {
+        const unsigned int got = inner_->fill(interleaved, frames);
+        if (gain_ != 1.0f && !interleaved.empty()) {
+            for (float& s : interleaved) {
+                s *= gain_;
+                if (s > 1.0f) {
+                    s = 1.0f;
+                } else if (s < -1.0f) {
+                    s = -1.0f;
+                }
+            }
+        }
+        return got;
+    }
+
+private:
+    std::unique_ptr<AudioSource> inner_;
+    float gain_;
+};
+
 }  // namespace
 
-std::unique_ptr<AudioSource> make_audio_source(const std::string& spec, int sample_rate)
+std::unique_ptr<AudioSource> make_audio_source(const std::string& spec, int sample_rate,
+                                               float gain)
 {
+    std::unique_ptr<AudioSource> src;
     if (spec == "sine") {
-        return std::make_unique<SineAudio>(sample_rate);
-    }
-    if (spec == "stdin") {
-        return std::make_unique<StdinAudio>(sample_rate);
-    }
-    if (spec.rfind("file:", 0) == 0) {
-        return std::make_unique<WavFileAudio>(spec.substr(5));
-    }
-    if (spec == "pulse" || spec.rfind("pulse:", 0) == 0) {
+        src = std::make_unique<SineAudio>(sample_rate);
+    } else if (spec == "stdin") {
+        src = std::make_unique<StdinAudio>(sample_rate);
+    } else if (spec.rfind("file:", 0) == 0) {
+        src = std::make_unique<WavFileAudio>(spec.substr(5));
+    } else if (spec == "pulse" || spec.rfind("pulse:", 0) == 0) {
 #ifdef HAVE_PULSE
         std::string device;
         if (spec.rfind("pulse:", 0) == 0) {
             device = spec.substr(6);
         }
-        return std::make_unique<PulseAudio>(sample_rate, std::move(device));
+        // Soft volume is set on the record stream; do not wrap with GainAudio.
+        return std::make_unique<PulseAudio>(sample_rate, std::move(device), gain);
 #else
         throw std::runtime_error("this build has no PulseAudio support");
 #endif
-    }
-    if (spec == "alsa" || spec.rfind("alsa:", 0) == 0) {
+    } else if (spec == "alsa" || spec.rfind("alsa:", 0) == 0) {
 #ifdef HAVE_ALSA
         std::string device;
         if (spec.rfind("alsa:", 0) == 0) {
             device = spec.substr(5);
         }
-        return std::make_unique<AlsaAudio>(sample_rate, std::move(device));
+        src = std::make_unique<AlsaAudio>(sample_rate, std::move(device));
 #else
         throw std::runtime_error("this build has no ALSA support");
 #endif
+    } else {
+        throw std::runtime_error(
+            "unknown --audio spec: " + spec +
+            " (use sine, pulse, pulse:SOURCE, alsa, alsa:DEVICE, file:PATH, or stdin)");
     }
-    throw std::runtime_error(
-        "unknown --audio spec: " + spec +
-        " (use sine, pulse, pulse:SOURCE, alsa, alsa:DEVICE, file:PATH, or stdin)");
+    if (gain != 1.0f) {
+        src = std::make_unique<GainAudio>(std::move(src), gain);
+    }
+    return src;
 }
 
 int list_audio_devices()

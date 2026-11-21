@@ -1,0 +1,53 @@
+---
+description: Local multi-arch container images use buildah (not podman build --platform)
+alwaysApply: true
+---
+
+# Local multi-arch image builds
+
+On this amd64 workstation, build milk-ddp container images with **buildah**, not
+`podman build --platform` / qemu-user binfmt. Host binfmt for aarch64 is broken
+here (`Exec format error`); do not waste time on qemu workarounds.
+
+## Commands
+
+Native amd64 Alpine (preferred local smoke image):
+
+```bash
+buildah bud -f Dockerfile.alpine \
+  -t localhost/milk-ddp:dev \
+  -t localhost/milk-ddp:test-audio-gain \
+  .
+```
+
+Cross / multi-arch with buildah (when an arm64 image is required locally):
+
+```bash
+buildah bud --arch arm64 --os linux -f Dockerfile.alpine \
+  -t localhost/milk-ddp:dev-arm64 \
+  .
+```
+
+Manifest list (optional):
+
+```bash
+buildah manifest create localhost/milk-ddp:dev
+buildah manifest add localhost/milk-ddp:dev localhost/milk-ddp:dev
+buildah manifest add --arch arm64 localhost/milk-ddp:dev localhost/milk-ddp:dev-arm64
+```
+
+## Ship to NanoPi R3S (aarch64)
+
+Prefer `podman image scp` after a local arm64 buildah image exists:
+
+```bash
+podman image scp localhost/milk-ddp:dev-arm64 stephen@nanopi-r3s.lan::
+```
+
+Or save/load into the **rootful** store used by `sudo podman kube play`:
+
+```bash
+podman save localhost/milk-ddp:dev-arm64 | ssh stephen@nanopi-r3s.lan 'sudo podman load'
+```
+
+Do not assume rootless and rootful image stores are shared on the NanoPi.

@@ -15,6 +15,9 @@ struct Config {
     std::vector<std::string> texture_paths;
     std::string preset;  // file, idle://, or empty (playlist)
     std::string audio = "sine";
+    // Linear amplitude. Pulse/PipeWire: record-stream soft volume (no per-sample
+    // loop). Other backends: scale inside fill(). Quiet monitors: try 1.5–4.0.
+    float audio_gain = 1.0f;
     int sample_rate = 44100;
     int frames = 0;  // 0 = run until signal
     std::string dump_ppm;
@@ -29,6 +32,14 @@ struct Config {
     bool quiet = false;      // suppress startup banner, preset lines, and progress
     bool progress = false;   // periodic status line with measured fps on stderr
     bool list_audio = false; // print Pulse/ALSA devices and exit
+    // Soft cuts render both presets (~2× GPU). When true, pace at fps/2 for
+    // soft_cut_duration and feed 2× PCM so wall-clock audio stays correct.
+    // Off by default; enable with --transition-half-fps.
+    bool transition_half_fps = false;
+    // Hard-cut through the playlist at startup (1 frame each, no DDP) so Mesa
+    // can populate its on-disk GLSL cache before normal play. On by default for
+    // playlist mode; disable with --no-warm-presets.
+    bool warm_presets = true;
     std::vector<std::pair<std::string, std::string>> properties;
 };
 

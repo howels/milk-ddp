@@ -7,7 +7,8 @@ MilkDrop 2 presets that:
 3. **Comp** raymarches a fake-3D surface and maps that texture onto it.
 
 Surface colour follows audio bands (bass → warm, mid → green–yellow, treb →
-cyan–magenta, kick → white flash), not a fixed palette.
+cyan–magenta, kick → coloured flash), not a fixed palette. Exposure is capped
+for LED matrices (same approach as `cellular`); full-white is avoided.
 
 No MilkDrop 3 `get_fft()`. Prefer **128×128+**. Regenerate with:
 

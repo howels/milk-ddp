@@ -5,9 +5,9 @@ Colour is driven by audio characteristics (not a fixed palette):
   - bass / bass_att  → warm red–orange weight
   - mid / mid_att    → green–yellow weight
   - treb / treb_att  → cyan–magenta weight
-  - kick             → white flash + saturation boost
+  - kick             → coloured flash + saturation boost
   - spectrum bin (sample) → hue along the strip
-  - overall energy   → brightness / exposure
+  - overall energy   → brightness / exposure (LED-capped like cellular)
 
 No MilkDrop 3 get_fft(). Prefer 128×128+ LED matrices.
 """
@@ -53,29 +53,32 @@ float3 wave_tex(float2 tc)
 float3 audio_tint(float u_coord)
 {
   float h = frac(q11 + u_coord * 0.55 + 0.08 * q4 - 0.05 * q2);
-  float sat = saturate(0.70 + 0.25 * q12 + 0.15 * q1);
+  float sat = saturate(0.78 + 0.22 * q12 + 0.12 * q1);
   float3 band = hue(h, sat);
-  float3 warm = float3(1.0, 0.35, 0.08) * q2;
-  float3 midc = float3(0.25, 1.0, 0.35) * q3;
-  float3 cool = float3(0.25, 0.55, 1.0) * q4;
-  return saturate(band * 0.85 + warm * 0.45 + midc * 0.40 + cool * 0.45);
+  float3 warm = float3(1.0, 0.32, 0.06) * q2;
+  float3 midc = float3(0.18, 1.0, 0.28) * q3;
+  float3 cool = float3(0.18, 0.50, 1.0) * q4;
+  return saturate(band * 0.90 + warm * 0.40 + midc * 0.35 + cool * 0.40);
 }
 float3 colourise(float3 tex, float u_coord, float shade)
 {
   float lum = dot(tex, float3(0.30, 0.59, 0.11));
   float3 tint = audio_tint(u_coord);
-  float3 col = tint * (0.42 + 1.05 * lum) * shade;
-  col += tint * lum * lum * 0.40;
-  col += float3(1.0, 0.95, 0.9) * pow(lum, 4.0) * q1 * 0.55;
-  col *= q13;
+  // Keep midtones colourful; avoid the old lum^2 + white kick path that
+  // crushed everything toward full white on LED matrices.
+  float3 col = tint * (0.28 + 0.72 * lum) * shade;
+  col += tint * lum * lum * 0.18;
+  col += tint * pow(lum, 3.0) * q1 * 0.22;
   return col;
 }
 float3 led_tonemap(float3 col)
 {
   float lum = max(dot(col, float3(0.30, 0.59, 0.11)), 0.0001);
-  float mapped = 1.0 - exp(-lum * 1.05);
-  mapped = min(mapped, 0.88);
-  return saturate((col / lum) * mapped);
+  float mapped = 1.0 - exp(-lum * 0.95);
+  mapped = min(mapped, 0.82);
+  float3 outc = (col / lum) * mapped * q13;
+  outc += col * pow(mapped, 2.5) * q1 * 0.12;
+  return saturate(outc);
 }
 """
 
@@ -86,7 +89,7 @@ PSVERSION=2
 PSVERSION_WARP=2
 PSVERSION_COMP=2
 fRating=4.500000
-fGammaAdj=1.700000
+fGammaAdj=1.100000
 fDecay={decay:.6f}
 fVideoEchoZoom=1.000000
 fVideoEchoAlpha=0.000000
@@ -156,10 +159,10 @@ wavecode_0_bDrawThick=1
 wavecode_0_bAdditive=1
 wavecode_0_scaling=1.200000
 wavecode_0_smoothing=0.450000
-wavecode_0_r=1.000000
-wavecode_0_g=1.000000
-wavecode_0_b=1.000000
-wavecode_0_a=1.000000
+wavecode_0_r=0.850000
+wavecode_0_g=0.850000
+wavecode_0_b=0.900000
+wavecode_0_a=0.850000
 wavecode_1_enabled=1
 wavecode_1_samples=512
 wavecode_1_sep=0
@@ -169,10 +172,10 @@ wavecode_1_bDrawThick=1
 wavecode_1_bAdditive=1
 wavecode_1_scaling=1.000000
 wavecode_1_smoothing=0.550000
-wavecode_1_r=1.000000
-wavecode_1_g=1.000000
-wavecode_1_b=1.000000
-wavecode_1_a=1.000000
+wavecode_1_r=0.900000
+wavecode_1_g=0.750000
+wavecode_1_b=0.650000
+wavecode_1_a=0.800000
 wavecode_2_enabled=1
 wavecode_2_samples=512
 wavecode_2_sep=0
@@ -182,10 +185,10 @@ wavecode_2_bDrawThick=1
 wavecode_2_bAdditive=1
 wavecode_2_scaling=0.900000
 wavecode_2_smoothing=0.500000
-wavecode_2_r=1.000000
-wavecode_2_g=1.000000
+wavecode_2_r=0.700000
+wavecode_2_g=0.850000
 wavecode_2_b=1.000000
-wavecode_2_a=0.900000
+wavecode_2_a=0.750000
 wavecode_3_enabled=0
 """
 
@@ -193,22 +196,22 @@ wavecode_3_enabled=0
 WAVE_POINTS = """\
 wave_0_per_point1=x = sample * 0.96 + 0.02;
 wave_0_per_point2=y = 0.06 + value * 0.55;
-wave_0_per_point3=r = 0.15 + 0.95 * bass_att + 0.55 * sample;
-wave_0_per_point4=g = 0.15 + 0.95 * mid_att + 0.35 * value;
-wave_0_per_point5=b = 0.20 + 0.95 * treb_att + 0.40 * (1 - sample);
-wave_0_per_point6=a = 0.65 + 0.35 * value;
+wave_0_per_point3=r = 0.12 + 0.85 * bass_att + 0.45 * sample;
+wave_0_per_point4=g = 0.12 + 0.85 * mid_att + 0.30 * value;
+wave_0_per_point5=b = 0.18 + 0.85 * treb_att + 0.35 * (1 - sample);
+wave_0_per_point6=a = 0.50 + 0.30 * value;
 wave_1_per_point1=x = sample * 0.96 + 0.02;
 wave_1_per_point2=y = 0.94 - value * 0.40;
-wave_1_per_point3=r = 0.70 + 0.30 * bass;
-wave_1_per_point4=g = 0.25 + 0.55 * mid + 0.20 * value;
-wave_1_per_point5=b = 0.15 + 0.70 * treb;
-wave_1_per_point6=a = 0.50 + 0.50 * value;
+wave_1_per_point3=r = 0.60 + 0.28 * bass;
+wave_1_per_point4=g = 0.20 + 0.50 * mid + 0.18 * value;
+wave_1_per_point5=b = 0.12 + 0.65 * treb;
+wave_1_per_point6=a = 0.40 + 0.40 * value;
 wave_2_per_point1=x = 0.50 + 0.48 * cos(sample * 6.2832);
 wave_2_per_point2=y = 0.50 + 0.48 * sin(sample * 6.2832) * (0.35 + 0.65 * value);
-wave_2_per_point3=r = 0.20 + 0.80 * treb_att + 0.40 * sample;
-wave_2_per_point4=g = 0.20 + 0.70 * mid_att;
-wave_2_per_point5=b = 0.35 + 0.65 * bass_att + 0.35 * (1 - sample);
-wave_2_per_point6=a = 0.40 + 0.55 * value;
+wave_2_per_point3=r = 0.15 + 0.70 * treb_att + 0.35 * sample;
+wave_2_per_point4=g = 0.15 + 0.65 * mid_att;
+wave_2_per_point5=b = 0.30 + 0.60 * bass_att + 0.30 * (1 - sample);
+wave_2_per_point6=a = 0.32 + 0.45 * value;
 """
 
 PER_FRAME = """\
@@ -223,10 +226,10 @@ per_frame_8=sm = sm * k60 + mid_att * (1 - k60);
 per_frame_9=st = st * k60 + treb_att * (1 - k60);
 per_frame_10=ang = ang + dt * ({spin:.4f} + {spin_treb:.4f} * st + 0.08 * kick);
 per_frame_11=scroll = scroll + dt * ({scroll:.4f} + {scroll_bass:.4f} * sb + 0.15 * st);
-per_frame_12=energy = min(sb + sm + st, 2.5);
+per_frame_12=energy = min(sb + sm * 0.85 + st * 0.7, 2.0);
 per_frame_13=hue_shift = {hue:.4f} + 0.08 * time + 0.12 * st - 0.07 * sb + 0.05 * sm; hue_shift = hue_shift - int(hue_shift);
-per_frame_14=sat_lvl = min(0.55 + 0.30 * energy + 0.15 * kick, 1.1);
-per_frame_15=gain = 0.95 + 0.28 * energy;
+per_frame_14=sat_lvl = min(0.65 + 0.28 * energy + 0.12 * kick, 1.15);
+per_frame_15=gain = 0.82 + 0.14 * energy + 0.08 * kick;
 per_frame_16=wave_r = min(0.25 + 0.90 * sb + 0.35 * kick, 1);
 per_frame_17=wave_g = min(0.20 + 0.85 * sm + 0.25 * st, 1);
 per_frame_18=wave_b = min(0.30 + 0.90 * st + 0.20 * sm, 1);
@@ -245,8 +248,8 @@ shader_body
   prev = lerp(prev, GetBlur1(suv), 0.12);
   float2 breathe = p * (0.003 + 0.01 * q1 + 0.004 * q3);
   float3 ink = tex2D(sampler_main, uv + breathe / float2(ar, 1.0)).rgb;
-  ret = max(prev * (0.90 + 0.03 * q2), ink * (1.0 + 0.18 * q1));
-  ret = max(ret - 0.0012, 0.0);
+  ret = max(prev * (0.88 + 0.025 * q2), ink * (0.92 + 0.12 * q1));
+  ret = max(ret - 0.0020, 0.0);
 }
 """
 
@@ -262,9 +265,9 @@ PRESETS = [
     {
         "file": "01-convex-sphere-skin.milk",
         "title": "Convex sphere with audio-coloured waveform skin",
-        "decay": 0.975,
+        "decay": 0.968,
         "wave_mode": 5,
-        "wave_alpha": 0.55,
+        "wave_alpha": 0.42,
         "wave_scale": 1.15,
         "pf": dict(spin=0.18, spin_treb=0.28, scroll=0.18, scroll_bass=0.25, hue=0.55, radius=0.40, cam_z=2.0, amp=0.35),
         "warp": WARP_SCROLL,
@@ -287,10 +290,10 @@ shader_body
     float3 tex = wave_tex(tuv * float2(2.4, 1.5) + float2(q6 * 0.4, q4 * 0.1));
     float ndl = saturate(dot(n, normalize(float3(0.35, 0.55, 0.75))));
     float fres = pow(1.0 - saturate(n.z), 2.0);
-    float shade = 0.55 + 0.90 * ndl;
+    float shade = 0.45 + 0.70 * ndl;
     col = colourise(tex, tuv.x, shade);
-    col += audio_tint(tuv.x + 0.2) * fres * (0.30 + 0.25 * q4);
-    col += float3(1.0, 0.92, 0.80) * fres * fres * q1 * 0.40;
+    col += audio_tint(tuv.x + 0.2) * fres * (0.22 + 0.18 * q4);
+    col += audio_tint(tuv.x) * fres * fres * q1 * 0.28;
   }
   else
   {
@@ -303,9 +306,9 @@ shader_body
     {
         "file": "02-concave-bowl.milk",
         "title": "Concave bowl - audio-coloured inner waveform skin",
-        "decay": 0.978,
+        "decay": 0.970,
         "wave_mode": 6,
-        "wave_alpha": 0.45,
+        "wave_alpha": 0.36,
         "wave_scale": 1.0,
         "pf": dict(spin=-0.12, spin_treb=0.2, scroll=0.15, scroll_bass=0.28, hue=0.08, radius=0.80, cam_z=0.32, amp=0.60),
         "warp": WARP_SCROLL,
@@ -344,9 +347,9 @@ shader_body
     float3 tex = wave_tex(tuv * float2(2.2, 1.5) + float2(0.0, q6 * 0.2));
     float ndl = saturate(dot(n, normalize(float3(0.2, 0.9, 0.3))));
     float rim = pow(1.0 - saturate(dot(n, -rd)), 2.3);
-    col = colourise(tex, u_ang, 0.35 + 0.8 * ndl);
-    col += audio_tint(u_ang + 0.33) * rim * (0.30 + 0.22 * q4);
-    col += float3(1.0, 0.75, 0.35) * exp(-length(pos.xz) * 2.5) * (0.08 + 0.35 * q1);
+    col = colourise(tex, u_ang, 0.30 + 0.65 * ndl);
+    col += audio_tint(u_ang + 0.33) * rim * (0.22 + 0.16 * q4);
+    col += audio_tint(u_ang) * exp(-length(pos.xz) * 2.5) * (0.06 + 0.22 * q1);
   }
   else
   {
@@ -358,9 +361,9 @@ shader_body
     {
         "file": "03-waveform-hills.milk",
         "title": "Landscape - audio-coloured waveform drape",
-        "decay": 0.972,
+        "decay": 0.965,
         "wave_mode": 3,
-        "wave_alpha": 0.50,
+        "wave_alpha": 0.38,
         "wave_scale": 1.2,
         "pf": dict(spin=0.05, spin_treb=0.08, scroll=0.25, scroll_bass=0.40, hue=0.30, radius=0.55, cam_z=0.95, amp=0.75),
         "warp": COMMON
@@ -371,8 +374,8 @@ shader_body
   float3 prev = tex2D(sampler_main, suv).rgb;
   prev = lerp(prev, GetBlur1(suv), 0.15);
   float3 ink = tex2D(sampler_main, uv).rgb;
-  ret = max(prev * (0.93 + 0.04 * q2), ink * (1.05 + 0.4 * q1));
-  ret = max(ret - 0.0004, 0.0);
+  ret = max(prev * (0.90 + 0.03 * q2), ink * (0.95 + 0.18 * q1));
+  ret = max(ret - 0.0015, 0.0);
 }
 """,
         "comp": COMMON
@@ -422,9 +425,9 @@ shader_body
     float3 tex = wave_tex(tuv);
     float ndl = saturate(dot(n, normalize(float3(0.3, 0.85, 0.35))));
     float fog = saturate(t / 6.0);
-    col = colourise(tex, tuv.x, 0.30 + 0.95 * ndl);
-    col = lerp(col, audio_tint(tuv.x + 0.5) * 0.2, fog * 0.65);
-    col += float3(1.0, 0.88, 0.55) * pow(ndl, 6.0) * q1 * 0.45;
+    col = colourise(tex, tuv.x, 0.28 + 0.72 * ndl);
+    col = lerp(col, audio_tint(tuv.x + 0.5) * 0.16, fog * 0.65);
+    col += audio_tint(tuv.x) * pow(ndl, 6.0) * q1 * 0.28;
   }
   else
   {
@@ -438,9 +441,9 @@ shader_body
     {
         "file": "04-convex-torus-wrap.milk",
         "title": "Convex torus - audio-coloured waveform wrap",
-        "decay": 0.976,
+        "decay": 0.968,
         "wave_mode": 7,
-        "wave_alpha": 0.50,
+        "wave_alpha": 0.38,
         "wave_scale": 1.05,
         "pf": dict(spin=0.24, spin_treb=0.32, scroll=0.20, scroll_bass=0.25, hue=0.72, radius=0.27, cam_z=2.1, amp=0.4),
         "warp": WARP_SCROLL,
@@ -464,9 +467,9 @@ shader_body
     float3 tex = wave_tex(tuv);
     float ndl = 0.55 + 0.45 * (1.0 - ring / max(tube_r, 0.001));
     float fres = pow(ring / max(tube_r, 0.001), 2.0);
-    col = colourise(tex, u, 0.55 + 0.85 * ndl);
-    col += audio_tint(u + 0.4) * fres * (0.25 + 0.25 * q4);
-    col += float3(1.0, 0.9, 0.8) * (1.0 - fres) * q1 * 0.35;
+    col = colourise(tex, u, 0.45 + 0.65 * ndl);
+    col += audio_tint(u + 0.4) * fres * (0.18 + 0.18 * q4);
+    col += audio_tint(u) * (1.0 - fres) * q1 * 0.22;
   }
   else
   {

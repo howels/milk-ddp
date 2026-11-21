@@ -197,6 +197,11 @@ spec:
     - /usr/share/milk-ddp/presets
     - --audio
     - pulse:sendspin.monitor
+    # Monitor taps are quieter in-container; float gain, raise until beat_sensitivity responds.
+    - --audio-gain
+    - "2.5"
+    # Playlist shader warm-up is on by default (progress on stderr). Optional:
+    # - --transition-half-fps
     # 4048 = milk-ddp/WLED default; 4049 = typical MoonLight DDP input.
     - --ddp
     - 127.0.0.1:4049
@@ -209,6 +214,7 @@ spec:
       value: /tmp
     - name: HOME
       value: /tmp
+    # Prefer a host-persistent path so Mesa’s GLSL cache survives pod recreate.
     - name: XDG_CACHE_HOME
       value: /tmp/cache
     # Host GPU path (Panfrost). Defeat any baked llvmpipe; advertise GL 3.3.

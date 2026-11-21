@@ -13,7 +13,10 @@ public:
     virtual unsigned int fill(std::vector<float>& interleaved, unsigned int frames) = 0;
 };
 
-std::unique_ptr<AudioSource> make_audio_source(const std::string& spec, int sample_rate);
+// gain: linear amplitude. Pulse applies it as stream soft volume (server-side).
+// Other backends scale inside fill() when gain != 1.
+std::unique_ptr<AudioSource> make_audio_source(const std::string& spec, int sample_rate,
+                                               float gain = 1.0f);
 
 // Print PulseAudio/PipeWire record sources to stdout. Returns 0 on success.
 int list_audio_devices();

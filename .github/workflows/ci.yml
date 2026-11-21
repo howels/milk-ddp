@@ -112,6 +112,6 @@ jobs:
             milk-ddp --software-gl --width 64 --height 64 --fps 15 --frames 2 \
               --ddp 127.0.0.1:19049 \
               --preset-path /usr/share/milk-ddp/presets/lowres \
-              --audio sine --quiet
+              --audio sine --quiet --no-warm-presets
             wait "${LISTEN_PID}"
           '

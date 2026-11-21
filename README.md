@@ -103,6 +103,8 @@ Live capture from PulseAudio (PipeWire’s Pulse shim is enough):
 
 `--audio pulse` connects to Pulse’s default source. It does **not** exit if the source is missing at start: PCM is silence until a source appears. Source and server subscription events reopen the stream when a device is plugged in, the default source changes, or the previous source is removed.
 
+`--audio-gain F` is linear amplitude (default `1.0`). On `--audio pulse` it sets the Pulse/PipeWire record-stream soft volume (server-side, no per-sample loop in the render thread). Other backends scale inside `fill()` and clamp to `[-1, 1]`. Quiet container monitors: start around `1.5`–`4.0`.
+
 `--audio alsa` opens ALSA’s `default` capture PCM. `--audio alsa:plughw:1,0` (or any other PCM name) selects a card directly. Missing devices are retried every 500 ms.
 
 List Pulse and ALSA capture devices:
@@ -149,6 +151,7 @@ Headless / no GPU:
 | `--texture-path DIR` | projectM texture search path (repeatable) |
 | `--preset FILE\|idle://` | Load one preset; `idle://` is the built-in logo |
 | `--audio sine\|pulse\|pulse:SOURCE\|alsa\|alsa:DEVICE\|file:PATH\|stdin` | PCM source (default `sine`) |
+| `--audio-gain F` | Linear amplitude (default `1.0`). Pulse: stream soft volume; else scale in `fill()`. Try `1.5`–`4.0` for quiet monitors |
 | `--list-audio` | List Pulse and ALSA capture devices and exit |
 | `--sample-rate N` | For `sine` and `stdin` (default 44100) |
 | `--frames N` | Exit after N frames |
@@ -161,6 +164,10 @@ Headless / no GPU:
 | `--switch-delay SEC` | Alias for `--preset-duration` |
 | `--quiet` | Suppress startup status and progress |
 | `--progress` | Print periodic status with measured fps on stderr |
+| `--transition-half-fps` | During soft cuts, pace at `fps/2` and feed 2× PCM (off by default) |
+| `--no-transition-half-fps` | Disable transition half-fps (default) |
+| `--warm-presets` | Cache warp/comp shaders for every playlist preset at startup (default; 1 frame each, DDP off); prints progress |
+| `--no-warm-presets` | Skip startup shader warm-up |
 | `--set KEY=VALUE` | projectM property (repeatable) |
 
 `--set` keys: `beat_sensitivity`, `hard_cut_duration`, `hard_cut_enabled`, `hard_cut_sensitivity`, `soft_cut_duration`, `preset_duration`, `mesh_size` (`WxH`), `aspect_correction`, `easter_egg`, `preset_locked`, `shuffle`.
