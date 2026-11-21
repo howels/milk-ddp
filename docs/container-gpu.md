@@ -60,12 +60,14 @@ podman run --rm --network=host \
   --group-add "$VIDEO_GID" \
   --group-add "$RENDER_GID" \
   --user 1000:1000 \
-  -e GALLIUM_DRIVER= \
-  -e MESA_LOADER_DRIVER_OVERRIDE= \
+  -e GALLIUM_DRIVER=panfrost \
+  -e MESA_LOADER_DRIVER_OVERRIDE=panfrost \
+  -e MESA_GL_VERSION_OVERRIDE=3.3 \
+  -e MESA_GLSL_VERSION_OVERRIDE=330 \
   -e LIBGL_ALWAYS_SOFTWARE=0 \
   -e HOME=/tmp \
   -e XDG_CACHE_HOME=/tmp/cache \
-  ghcr.io/howels/milk-ddp:latest \
+  ghcr.io/howels/milk-ddp:v0.1.4 \
   --preset-path /usr/share/milk-ddp/presets \
   --ddp 127.0.0.1:4048 \
   --audio sine
@@ -78,10 +80,25 @@ nodes are writable. Do not pass `--software-gl`.
 Startup stderr should name the GPU driver, for example:
 
 ```text
-GL Mesa / Mali G52 (Panfrost) / 3.1 Mesa …
+GL Mesa / Mali-G52 r1 (Panfrost) / 3.3 (Core Profile) …
 ```
 
 `llvmpipe` in that line means Mesa is still on the software path.
+
+### Panfrost EGL_BAD_MATCH (NanoPi R3S / Mali Bifrost)
+
+Panfrost often rejects a native OpenGL 3.3 core context. milk-ddp needs 3.3, so
+set Mesa version overrides after selecting the Gallium driver:
+
+```bash
+-e GALLIUM_DRIVER=panfrost \
+-e MESA_LOADER_DRIVER_OVERRIDE=panfrost \
+-e MESA_GL_VERSION_OVERRIDE=3.3 \
+-e MESA_GLSL_VERSION_OVERRIDE=330 \
+```
+
+Without the version overrides, EGL initialise can fail with `EGL_BAD_MATCH`
+even when `/dev/dri` opens cleanly and `panfrost_dri.so` is loaded.
 
 ## podman kube play
 
@@ -112,11 +129,15 @@ spec:
     - name: XDG_CACHE_HOME
       value: /tmp/cache
     - name: GALLIUM_DRIVER
-      value: ""
+      value: panfrost
     - name: MESA_LOADER_DRIVER_OVERRIDE
-      value: ""
+      value: panfrost
     - name: LIBGL_ALWAYS_SOFTWARE
       value: "0"
+    - name: MESA_GL_VERSION_OVERRIDE
+      value: "3.3"
+    - name: MESA_GLSL_VERSION_OVERRIDE
+      value: "330"
     resources:
       limits:
         "podman.io/device=/dev/dri": 1
@@ -132,6 +153,10 @@ spec:
     hostPath:
       path: /dev/dri
 ```
+
+Empty-string Gallium overrides are unreliable; set the host driver name
+explicitly (for example `panfrost`). See
+`examples/podman/moonlight-milkddp-rootful.yaml` for the full working Pod.
 
 `Permission denied` on `/dev/dri/card*` or `renderD*` is almost always missing
 pod-level `supplementalGroups`, missing `podman.io/device=…`, or both.
@@ -161,6 +186,7 @@ that selector is Podman-only.
 |---|---|
 | `failed to open /dev/dri/…: Permission denied` | No `--device` / `podman.io/device`, or missing `supplementalGroups` |
 | `GL … llvmpipe` with devices present | `GALLIUM_DRIVER` / `MESA_LOADER_DRIVER_OVERRIDE` still `llvmpipe`, or `--software-gl` |
+| `EGL_BAD_MATCH` / eglInitialize fails with Panfrost loaded | Missing `MESA_GL_VERSION_OVERRIDE=3.3` (and GLSL 330) |
 | `eglInitialize failed` with no DRI nodes in the container | Device not passed through |
 | Works on host, fails in container, same user | Rootless user namespace dropped `video`/`render`; use rootful play or map those GIDs |
 

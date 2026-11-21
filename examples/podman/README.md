@@ -2,7 +2,7 @@
 
 | File | Podman store | Play |
 |---|---|---|
-| [moonlight-milkddp-rootful.yaml](moonlight-milkddp-rootful.yaml) | rootful (`sudo podman`) | `sudo podman kube play … --network=host --replace` |
+| [moonlight-milkddp-rootful.yaml](moonlight-milkddp-rootful.yaml) | rootful (`sudo podman`); milk-ddp `v0.1.4` + host `/dev/dri` (Panfrost) | `sudo podman kube play … --network=host --replace` |
 | [moonlight-milkddp-rootless.yaml](moonlight-milkddp-rootless.yaml) | rootless (user) | `podman kube play … --network=host --replace --userns=keep-id` then attach milk-ddp with `--group-add keep-groups` (see file header) |
 
 Both use `hostNetwork: true`. Ports (all unprivileged):

@@ -7,14 +7,16 @@
 #   UDP 4049  — common MoonLight DDP listen port (this file targets 127.0.0.1:4049)
 # See moonlight-milkddp-rootless.yaml for the rootless variant.
 #
-# GPU (Panfrost / Mali on NanoPi R3S):
-#   - Pod-level supplementalGroups must list host video + render GIDs
+# GPU (verified NanoPi R3S, Mali-G52 / Panfrost — host OpenGL via /dev/dri):
+#   - Pod-level supplementalGroups: host video + render GIDs
 #     (`getent group video render`). Container-level supplementalGroups is ignored.
 #   - resources.limits "podman.io/device=/dev/dri" grants the devices cgroup
 #     (hostPath alone mounts nodes but open() still gets EACCES).
-#   - milk-ddp image ≤v0.1.3 bakes GALLIUM_DRIVER=llvmpipe; override to panfrost
-#     (or rebuild from a tree that dropped those ENV lines). A new image helps
-#     but is not required if the env overrides below are set.
+#   - GALLIUM_DRIVER / MESA_LOADER_DRIVER_OVERRIDE=panfrost (defeat ≤v0.1.3 llvmpipe).
+#   - MESA_GL_VERSION_OVERRIDE=3.3 (+ GLSL 330): Panfrost rejects a native 3.3
+#     core context (EGL_BAD_MATCH); the override makes Mesa advertise 3.3 so
+#     milk-ddp’s EGL path succeeds. Expect:
+#       GL Mesa / Mali-G52 r1 (Panfrost) / 3.3 (Core Profile)
 #
 # Play (rootful — needs sudo for the podman machine that owns the root store):
 #   sudo podman kube play examples/podman/moonlight-milkddp-rootful.yaml \
@@ -94,9 +96,11 @@ spec:
   - name: tools
     image: docker.io/library/busybox:musl
     imagePullPolicy: IfNotPresent
+    # emptyDir is writable by UID 1000; no need for root to stage busybox.
     securityContext:
-      runAsUser: 0
-      runAsGroup: 0
+      runAsUser: 1000
+      runAsGroup: 1000
+      allowPrivilegeEscalation: false
     command:
     - /bin/sh
     - -c
@@ -106,8 +110,12 @@ spec:
       mountPath: /tools
   containers:
   - name: pipewire
-    image: ghcr.io/howels/pipewire:latest
+    image: ghcr.io/howels/pipewire:v1.0.0
     imagePullPolicy: Always
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      allowPrivilegeEscalation: false
     env:
     - name: XDG_RUNTIME_DIR
       value: /run/pulse/runtime
@@ -128,8 +136,12 @@ spec:
     - mountPath: /run/pulse
       name: pulse-runtime
   - name: sendspin
-    image: ghcr.io/howels/sendspin:latest
+    image: ghcr.io/howels/sendspin:v1.0.0
     imagePullPolicy: Always
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      allowPrivilegeEscalation: false
     args:
     - daemon
     - --name
@@ -153,8 +165,12 @@ spec:
     - mountPath: /data
       name: sendspin-data
   - name: squeezelite
-    image: ghcr.io/howels/squeezelite:latest
+    image: ghcr.io/howels/squeezelite:v1.0.0
     imagePullPolicy: Always
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      allowPrivilegeEscalation: false
     args:
     - -n
     - $(hostname)-squeezelite
@@ -173,7 +189,7 @@ spec:
     - mountPath: /run/pulse
       name: pulse-runtime
   - name: milk-ddp
-    image: ghcr.io/howels/milk-ddp:v0.1.3
+    image: ghcr.io/howels/milk-ddp:v0.1.4
     imagePullPolicy: Always
     args:
     # Omit --software-gl so Mesa can use Panfrost when /dev/dri is usable.
@@ -195,13 +211,17 @@ spec:
       value: /tmp
     - name: XDG_CACHE_HOME
       value: /tmp/cache
-    # Defeat image-baked llvmpipe (≤v0.1.3). Prefer explicit panfrost on this SoC.
+    # Host GPU path (Panfrost). Defeat any baked llvmpipe; advertise GL 3.3.
     - name: GALLIUM_DRIVER
       value: panfrost
     - name: MESA_LOADER_DRIVER_OVERRIDE
       value: panfrost
     - name: LIBGL_ALWAYS_SOFTWARE
       value: "0"
+    - name: MESA_GL_VERSION_OVERRIDE
+      value: "3.3"
+    - name: MESA_GLSL_VERSION_OVERRIDE
+      value: "330"
     resources:
       requests:
         "podman.io/device=/dev/dri": 1
@@ -261,13 +281,13 @@ spec:
         port: 8080
       timeoutSeconds: 1
     securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      allowPrivilegeEscalation: false
       capabilities:
         add:
         # Namespaced; does not require rootful Podman by itself.
         - NET_RAW
-      fsGroup: 1000
-      runAsGroup: 1000
-      runAsUser: 1000
     volumeMounts:
     - mountPath: /run/pulse
       name: pulse-runtime
