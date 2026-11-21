@@ -367,9 +367,20 @@ comp_170=`  float3 lo_f0 = float3(0.180, 0.480, 0.140);
 comp_171=`  float3 tint = lerp(lo_f0, hi_f0, saturate(ht * 0.85 + 0.15 * cell_var));
 comp_172=`  float3 lit = mercury_light(Nor, tint, ht, gfill, 1.1);
 comp_173=`  float3 col = lerp(charcoal, lit, gfill);
-comp_174=`  col += hi_f0 * pow(meniscus, 1.15) * gfill * (0.55 + 0.4 * q4);
-comp_175=`  col += lo_f0 * (1.0 - ht) * gfill * 0.25;
-comp_176=`  col += hi_f0 * gfill * q1 * 0.1;
-comp_177=`  col += hi_f0 * pow(gfill, 2.0) * (0.08 + 0.18 * q2);
-comp_178=`  ret = led_tonemap(col * 1.04);
-comp_179=`}
+comp_174=`  float3 rim_hue = float3(0.000, 0.950, 0.550);
+comp_175=`  float edge = smoothstep(0.2, 0.4, gfill) * (1.0 - smoothstep(0.4, 0.58, gfill));
+comp_176=`  edge = pow(saturate(edge), 1.85);
+comp_177=`  float3 Lrim = normalize(float3(cos(q14), sin(q14), 0.3 + 0.24 * q15));
+comp_178=`  float lit_edge = pow(saturate(dot(Nor, Lrim)), 2.0);
+comp_179=`  float grazing = pow(1.0 - saturate(Nor.z), 1.65);
+comp_180=`  float rim = edge * lit_edge * (0.45 + 0.55 * grazing);
+comp_181=`  float3 Rrim = reflect(-Lrim, Nor);
+comp_182=`  float rim_spec = pow(saturate(dot(Rrim, float3(0.0, 0.0, 1.0))), 12.0 + 28.0 * q11) * edge * lit_edge;
+comp_183=`  col += rim_hue * rim * gfill * (3.4 + 1.1 * q4 + 0.5 * q1);
+comp_184=`  col += rim_hue * rim_spec * gfill * (2.1 + 0.85 * q11);
+comp_185=`  col += lo_f0 * (1.0 - ht) * gfill * 0.25;
+comp_186=`  col += hi_f0 * gfill * q1 * 0.1;
+comp_187=`  col += hi_f0 * pow(gfill, 2.0) * (0.08 + 0.18 * q2);
+comp_188=`  col += rim_hue * rim * gfill * (0.35 + 0.2 * q4);
+comp_189=`  ret = led_tonemap(col * 1.04);
+comp_190=`}

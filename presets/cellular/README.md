@@ -19,7 +19,7 @@ python3 scripts/gen_cellular_presets.py
 | File | Motif |
 |---|---|
 | `01-molten-gold-cells.milk` | Yellow/gold mercury puddles |
-| `02-honey-bloom.milk` | Green/gold mercury bloom; larger cells |
+| `02-honey-bloom.milk` | Green/gold mercury bloom; emerald meniscus rim |
 | `03-liquid-amber-flow.milk` | Deep purple metal under bright sky-blue light |
 | `04-radial-metallic.milk` | Vanishing-point petri dish; coral diplococci + rings |
 | `05-heat-temper-puddles.milk` | Heat-temper neon march + orbiting rim light |

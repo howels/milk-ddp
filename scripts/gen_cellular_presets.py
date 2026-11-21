@@ -208,8 +208,30 @@ def voronoi_palette_body(
     hi: tuple[float, float, float],
     lo: tuple[float, float, float],
     charcoal: tuple[float, float, float] = (0.015, 0.012, 0.01),
+    rim: tuple[float, float, float] | None = None,
 ) -> str:
-    """Crest (hi) and valley (lo) metal F0 colours for a puddle preset."""
+    """Crest (hi) and valley (lo) metal F0 colours for a puddle preset.
+
+    Optional rim: thin directional meniscus colour (≈1–2px at LED scale).
+    """
+    if rim is None:
+        rim_block = """
+  col += hi_f0 * pow(meniscus, 1.15) * gfill * (0.55 + 0.4 * q4);
+"""
+    else:
+        rim_block = f"""
+  float3 rim_hue = float3({rim[0]:.3f}, {rim[1]:.3f}, {rim[2]:.3f});
+  float edge = smoothstep(0.2, 0.4, gfill) * (1.0 - smoothstep(0.4, 0.58, gfill));
+  edge = pow(saturate(edge), 1.85);
+  float3 Lrim = normalize(float3(cos(q14), sin(q14), 0.3 + 0.24 * q15));
+  float lit_edge = pow(saturate(dot(Nor, Lrim)), 2.0);
+  float grazing = pow(1.0 - saturate(Nor.z), 1.65);
+  float rim = edge * lit_edge * (0.45 + 0.55 * grazing);
+  float3 Rrim = reflect(-Lrim, Nor);
+  float rim_spec = pow(saturate(dot(Rrim, float3(0.0, 0.0, 1.0))), 12.0 + 28.0 * q11) * edge * lit_edge;
+  col += rim_hue * rim * gfill * (3.4 + 1.1 * q4 + 0.5 * q1);
+  col += rim_hue * rim_spec * gfill * (2.1 + 0.85 * q11);
+"""
     return (
         VORONOI_FIELD
         + f"""
@@ -219,7 +241,9 @@ def voronoi_palette_body(
   float3 tint = lerp(lo_f0, hi_f0, saturate(ht * 0.85 + 0.15 * cell_var));
   float3 lit = mercury_light(Nor, tint, ht, gfill, 1.1);
   float3 col = lerp(charcoal, lit, gfill);
-  col += hi_f0 * pow(meniscus, 1.15) * gfill * (0.55 + 0.4 * q4);
+"""
+        + rim_block
+        + """
   col += lo_f0 * (1.0 - ht) * gfill * 0.25;
   col += hi_f0 * gfill * q1 * 0.1;
 """
@@ -228,7 +252,12 @@ def voronoi_palette_body(
 
 # Named palettes for 01–03.
 PALETTE_YELLOW_GOLD = dict(hi=(0.95, 0.62, 0.18), lo=(0.70, 0.32, 0.08))
-PALETTE_GREEN_GOLD = dict(hi=(0.72, 0.88, 0.28), lo=(0.18, 0.48, 0.14), charcoal=(0.012, 0.018, 0.012))
+PALETTE_GREEN_GOLD = dict(
+    hi=(0.72, 0.88, 0.28),
+    lo=(0.18, 0.48, 0.14),
+    charcoal=(0.012, 0.018, 0.012),
+    rim=(0.0, 0.95, 0.55),
+)
 # 03: deep purple metal F0; sky-blue is a separate key light (not mixed into tint).
 PALETTE_PURPLE_SKY = dict(
     metal=(0.55, 0.12, 0.85),
@@ -370,8 +399,8 @@ RADIAL_METAL_BODY = """\
   float thresh = 0.5 - 0.05 * near;
   float gfill = smoothstep(thresh - 0.08, thresh + 0.1 + 0.08 * q6, field);
   gfill *= smoothstep(1.05, 0.12, rr);
-  float meniscus = smoothstep(0.1, 0.48, gfill) * (1.0 - smoothstep(0.48, 0.96, gfill));
-  float ht = saturate(gfill * 0.65 + meniscus * 0.75 + (rip1 - 0.5) * 0.35 * gfill);
+  float meniscus = smoothstep(0.22, 0.4, gfill) * (1.0 - smoothstep(0.4, 0.58, gfill));
+  float ht = saturate(gfill * 0.85 + meniscus * 0.15 + (rip1 - 0.5) * 0.25 * gfill);
   float dhx = (field_x - field) / eps.x;
   float dhy = (field_y - field) / eps.x;
   dhx += (rip1 - rip2) * 1.1 + (caustic - 0.5) * 0.8;
@@ -397,30 +426,40 @@ RADIAL_METAL_BODY = """\
   bg *= 1.0 - spore * 0.4 * smoothstep(0.15, 0.95, rr);
   float3 coral_lo = float3(0.55, 0.12, 0.18);
   float3 coral_hi = float3(1.0, 0.45, 0.28);
-  float3 coral_rim = float3(1.0, 0.65, 0.35);
   float3 chrome = float3(0.95, 0.92, 0.75);
-  float3 tint = lerp(coral_lo, coral_hi, saturate(ht * 0.7 + 0.25 * cell_var));
-  tint = lerp(tint, coral_rim, meniscus * 0.45);
-  float3 lit = mercury_light(Nor, tint, ht, gfill, 1.1);
+  float3 men_a = float3(1.0, 0.2, 0.55);
+  float3 men_b = float3(0.2, 0.85, 1.0);
+  float3 men_c = float3(1.0, 0.7, 0.12);
+  float3 men_d = float3(0.45, 1.0, 0.35);
+  float3 men_e = float3(0.85, 0.35, 1.0);
+  float hue_u = frac(cell_var * 3.7 + cid.x * 0.17 + cid.y * 0.31 + q9 * 0.08);
+  float3 rim_hue = lerp(men_a, men_b, smoothstep(0.0, 0.22, hue_u));
+  rim_hue = lerp(rim_hue, men_c, smoothstep(0.18, 0.42, hue_u));
+  rim_hue = lerp(rim_hue, men_d, smoothstep(0.38, 0.65, hue_u));
+  rim_hue = lerp(rim_hue, men_e, smoothstep(0.6, 0.88, hue_u));
+  rim_hue = lerp(rim_hue, men_a, smoothstep(0.82, 1.0, hue_u));
+  float3 tint = lerp(coral_lo, coral_hi, saturate(ht * 0.75 + 0.2 * cell_var));
+  float3 lit = mercury_light(Nor, tint, ht, gfill, 0.85);
   float3 Vdir = float3(0.0, 0.0, 1.0);
   float3 R = normalize(float3(2.0 * Nor.z * Nor.x, 2.0 * Nor.z * Nor.y, 2.0 * Nor.z * Nor.z - 1.0));
   float3 Lcent = normalize(float3(-p.x, -p.y, 0.35 + 0.25 * q15) + float3(0.0, 0.0, 0.2));
-  float3 Lorb = normalize(float3(cos(q14) * 0.7, sin(q14) * 0.7, 0.4));
-  float men_pow = pow(saturate(meniscus), 0.5);
-  float3 Rcent = reflect(-Lcent, Nor);
-  float tension = pow(saturate(dot(Rcent, Vdir)), 10.0 + 28.0 * q11) * men_pow;
-  float rim_catch = pow(saturate(dot(Nor, Lcent)), 1.6) * men_pow;
-  float shin = 18.0 + 60.0 * q11;
-  float sp = pow(saturate(dot(R, Lcent)), shin) * 1.4;
-  sp += pow(saturate(dot(R, Lorb)), shin * 0.45) * 0.5;
-  float glisten = pow(saturate(dot(R, Lcent)), 5.0 + 12.0 * q11) * (0.35 + 0.65 * ht);
+  float3 Lcol = normalize(float3(cos(q14 + cell_var * 6.28), sin(q14 + cell_var * 6.28), 0.28 + 0.2 * q15));
+  float shin = 24.0 + 75.0 * q11;
+  float sp = pow(saturate(dot(R, Lcent)), shin) * 1.15;
+  float glisten = pow(saturate(dot(R, Lcent)), 8.0 + 18.0 * q11) * (0.45 + 0.55 * ht);
+  float edge = pow(saturate(meniscus), 1.8);
+  float lit_edge = pow(saturate(dot(Nor, Lcol)), 2.2);
+  float grazing = pow(1.0 - saturate(Nor.z), 1.7);
+  float rim = edge * lit_edge * (0.5 + 0.5 * grazing);
+  float3 Rcol = reflect(-Lcol, Nor);
+  float rim_spec = pow(saturate(dot(Rcol, Vdir)), 14.0 + 32.0 * q11) * edge * lit_edge;
   float3 col = lerp(bg, lit, gfill);
-  col += coral_rim * tension * (1.6 + 0.8 * q4);
-  col += coral_hi * rim_catch * (1.1 + 0.4 * q15);
-  col += chrome * sp * gfill * (0.7 + 0.4 * q11);
-  col += chrome * glisten * gfill * (1.0 + 0.55 * q11);
-  col += core_y * gfill * near * 0.2;
-  col += coral_hi * gfill * q1 * 0.1;
+  col += rim_hue * rim * gfill * (2.8 + 1.0 * q4 + 0.45 * q1);
+  col += rim_hue * rim_spec * gfill * (1.8 + 0.75 * q11);
+  col += chrome * sp * gfill * (0.55 + 0.3 * q11);
+  col += chrome * glisten * gfill * (0.75 + 0.35 * q11);
+  col += core_y * gfill * near * 0.1;
+  col += coral_hi * gfill * q1 * 0.07;
   float vign = smoothstep(1.2, 0.1, rr);
   col *= 0.22 + 0.78 * vign;
 """
@@ -601,6 +640,7 @@ PRESETS = [
         ),
         "comp_extra": """
   col += hi_f0 * pow(gfill, 2.0) * (0.08 + 0.18 * q2);
+  col += rim_hue * rim * gfill * (0.35 + 0.2 * q4);
   ret = led_tonemap(col * 1.04);
 """,
     },
@@ -646,8 +686,8 @@ PRESETS = [
             spec=1.15,
         ),
         "comp_extra": """
-  col += chrome * glisten * gfill * 0.4;
-  col += coral_rim * men_pow * gfill * (0.3 + 0.2 * q4);
+  col += chrome * glisten * gfill * 0.2;
+  col += rim_hue * rim * gfill * (0.4 + 0.25 * q4);
   ret = led_tonemap(col);
 """,
     },
@@ -694,6 +734,7 @@ def write_preset(spec: dict) -> Path:
             hi=pal["hi"],
             lo=pal["lo"],
             charcoal=pal.get("charcoal", (0.015, 0.012, 0.01)),
+            rim=pal.get("rim"),
         )
     comp = (
         COMMON
