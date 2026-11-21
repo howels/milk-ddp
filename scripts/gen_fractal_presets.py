@@ -336,19 +336,22 @@ shader_body
         "file": "03-mandelbrot-drift.milk",
         "title": "Mandelbrot drift",
         "pf": dict(
-            zoom_base=1.8,
-            zoom_bass=0.35,
-            zoom_kick=0.5,
-            spin=0.02,
-            spin_treb=0.08,
-            cx=-0.75,
-            cy=0.12,
-            cx_amp=0.12,
-            cy_amp=0.1,
+            # Wide window on the main cardioid: colour lives in the exterior, so
+            # a deep zoom into the set left only a dark body with edge filaments.
+            # scale/zoom ≈ 1.7 → half-height ~0.85, set spans most of a square frame.
+            zoom_base=0.85,
+            zoom_bass=0.18,
+            zoom_kick=0.28,
+            spin=0.015,
+            spin_treb=0.06,
+            cx=-0.70,
+            cy=0.0,
+            cx_amp=0.14,
+            cy_amp=0.10,
             cx_freq=0.05,
             cy_freq=0.07,
             hue=0.55,
-            scale=1.0,
+            scale=1.45,
         ),
         "warp": COMMON_FUNCS
         + """
@@ -588,19 +591,21 @@ shader_body
         "file": "06-branching-tree.milk",
         "title": "Branching fractal tree",
         "pf": dict(
-            zoom_base=1.35,
-            zoom_bass=0.35,
-            zoom_kick=0.5,
-            spin=0.12,
-            spin_treb=0.32,
-            cx=0.55,
-            cy=0.35,
-            cx_amp=0.35,
-            cy_amp=0.28,
+            # Lower scale maps screen pixels into a smaller SDF domain so the
+            # folded tree fills most of the frame rather than a mid-height strip.
+            zoom_base=1.05,
+            zoom_bass=0.22,
+            zoom_kick=0.35,
+            spin=0.10,
+            spin_treb=0.28,
+            cx=0.45,
+            cy=0.30,
+            cx_amp=0.28,
+            cy_amp=0.22,
             cx_freq=0.22,
             cy_freq=0.18,
             hue=0.12,
-            scale=1.35,
+            scale=0.72,
         ),
         "warp": COMMON_FUNCS
         + """
@@ -612,19 +617,19 @@ shader_body
   s += float2(0.012 * q11, 0.01 * sin(time * 1.4 + q6));
   float2 suv = s / float2(ar, 1.0) + 0.5;
   float3 prev = tex2D(sampler_main, suv).rgb;
-  float2 q = float2(p.x, p.y + 0.45) * q10 * (0.9 + 0.15 * q4);
-  q = rot2(q, 0.25 * q11);
+  float2 q = float2(p.x, p.y + 0.52) * q10 * (0.78 + 0.10 * q4);
+  q = rot2(q, 0.2 * q11);
   float d = 9.0;
   for (int i = 0; i < 8; i++)
   {
     q.x = abs(q.x);
-    float2 a = q - float2(0.0, 0.22 + 0.05 * q2);
-    d = min(d, length(float2(a.x, max(a.y, 0.0))) - (0.035 - 0.004 * float(i)));
-    float wind = q2 * 0.7 + 0.45 * q11 + 0.2 * sin(time * 1.7 + float(i));
-    q = rot2(q, wind) * (1.33 + 0.12 * q7 + 0.05 * q1) - float2(0.0, 0.27);
+    float2 a = q - float2(0.0, 0.20 + 0.04 * q2);
+    d = min(d, length(float2(a.x, max(a.y, 0.0))) - (0.042 - 0.004 * float(i)));
+    float wind = q2 * 0.55 + 0.4 * q11 + 0.18 * sin(time * 1.7 + float(i));
+    q = rot2(q, wind) * (1.28 + 0.10 * q7 + 0.04 * q1) - float2(0.0, 0.24);
   }
-  float3 em = hue(q9 + 0.08 * time + 0.05 * q8, 0.9) * exp(-d * d * 350.0);
-  em *= 0.05 + 0.06 * q1;
+  float3 em = hue(q9 + 0.08 * time + 0.05 * q8, 0.9) * exp(-d * d * 280.0);
+  em *= 0.06 + 0.07 * q1;
   ret = max(prev * 0.88 + em, 0.0);
 }
 """,
@@ -634,28 +639,28 @@ shader_body
 {
   float ar = texsize.x * texsize.w;
   float2 p = (uv - 0.5) * float2(ar, 1.0);
-  float2 q = float2(p.x, p.y + 0.48) * q10 * (0.88 + 0.18 * q4);
-  q = rot2(q, q5 * 0.2 + 0.3 * q11);
+  float2 q = float2(p.x, p.y + 0.55) * q10 * (0.75 + 0.12 * q4);
+  q = rot2(q, q5 * 0.15 + 0.25 * q11);
   float d = 9.0;
   float leaf_d = 9.0;
-  for (int i = 0; i < 10; i++)
+  for (int i = 0; i < 11; i++)
   {
     q.x = abs(q.x);
-    float thick = 0.04 - 0.0035 * float(i);
-    float2 a = q - float2(0.0, 0.20 + 0.04 * q6 + 0.03 * q12);
+    float thick = 0.05 - 0.0038 * float(i);
+    float2 a = q - float2(0.0, 0.18 + 0.035 * q6 + 0.025 * q12);
     d = min(d, length(float2(a.x, max(a.y, 0.0))) - thick);
-    leaf_d = min(leaf_d, length(q - float2(0.0, 0.05)) - (0.08 - 0.006 * float(i)));
-    float bend = q2 * 0.9 + 0.4 * q11 + 0.3 * q8 + 0.15 * sin(time * 2.1 + float(i));
-    q = rot2(q, bend) * (1.30 + 0.14 * q7 + 0.06 * q1) - float2(0.0, 0.25 + 0.03 * q13);
+    leaf_d = min(leaf_d, length(q - float2(0.0, 0.04)) - (0.11 - 0.007 * float(i)));
+    float bend = q2 * 0.75 + 0.35 * q11 + 0.25 * q8 + 0.12 * sin(time * 2.1 + float(i));
+    q = rot2(q, bend) * (1.26 + 0.12 * q7 + 0.05 * q1) - float2(0.0, 0.22 + 0.025 * q13);
   }
-  float trunk = exp(-d * d * (200.0 + 70.0 * q1));
-  float canopy = exp(-leaf_d * leaf_d * 60.0) * smoothstep(0.3, -0.2, p.y + 0.05 * q12);
-  float soil = smoothstep(0.62, 0.35, p.y);
+  float trunk = exp(-d * d * (160.0 + 55.0 * q1));
+  float canopy = exp(-leaf_d * leaf_d * 42.0) * smoothstep(0.55, -0.35, p.y + 0.04 * q12);
+  float soil = smoothstep(0.72, 0.42, p.y);
   float3 bark = float3(0.35, 0.18, 0.08) * (0.7 + 0.3 * q6);
   float3 leaves = hue(q9 + 0.18 + 0.1 * time + 0.12 * q7, 1.0);
-  float3 col = bark * trunk * 1.8 + leaves * canopy * 1.55;
-  col += float3(0.12, 0.2, 0.06) * soil * 0.35;
-  col += float3(0.45, 0.7, 1.0) * pow(saturate(0.15 - p.y), 2.0) * 0.25;
+  float3 col = bark * trunk * 2.0 + leaves * canopy * 1.7;
+  col += float3(0.12, 0.2, 0.06) * soil * 0.28;
+  col += float3(0.45, 0.7, 1.0) * pow(saturate(0.05 - p.y), 2.0) * 0.2;
   col += tex2D(sampler_main, uv).rgb * 0.4;
   ret = led_tonemap(col);
 }

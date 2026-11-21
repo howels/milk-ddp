@@ -1,15 +1,17 @@
 # Presets (GPL-3.0-or-later)
 
-Root samples, `lowres/`, `fractal/`, `surfaces/`, `neon/`, `jelly/`, and
-`rush/` are **original GPL-3.0-or-later** works for milk-ddp LED matrices.
-`lowres/` targets **64×64–256×256** with thick waves and strong beat
-coupling. `fractal/` is MilkDrop 2 shader fractals (classic sets, nature /
-landscape, and zoom-rush dives). `surfaces/` maps waveform/spectrum
-textures onto fake-3D convex, concave, and landscape geometry (128×128+).
-`neon/` is high-saturation neon grids, tubes, lasers, signage, and circuit
-traces. `jelly/` is gelatinous relief / machine-code scroll presets
-inspired by Butterchurn Machine Code (Jelly) aesthetics. `rush/` is
-forward-zoom tunnels built from waveform-driven geometric patterns.
+Root samples, `lowres/`, `fractal/`, `surfaces/`, `neon/`, `jelly/`,
+`rush/`, and `cellular/` are **original GPL-3.0-or-later** works for
+milk-ddp LED matrices. `lowres/` targets **64×64–256×256** with thick
+waves and strong beat coupling. `fractal/` is MilkDrop 2 shader fractals
+(classic sets, nature / landscape, and zoom-rush dives). `surfaces/` maps
+waveform/spectrum textures onto fake-3D convex, concave, and landscape
+geometry (128×128+). `neon/` is high-saturation neon grids, tubes, lasers,
+signage, and circuit traces. `jelly/` is gelatinous relief / machine-code
+scroll presets inspired by Butterchurn Machine Code (Jelly) aesthetics.
+`rush/` is forward-zoom tunnels built from waveform-driven geometric
+patterns. `cellular/` is Voronoi molten-gold cells whose amber fill grows
+from zero with bass and kick.
 
 `modern/` is a **MIT** curated selection of post-classic MilkDrop 2 presets
 (shaders, mock-3D, fractals) from M0Rf30 — see `modern/README.md`.
@@ -26,6 +28,7 @@ forward-zoom tunnels built from waveform-driven geometric patterns.
 | `neon/` | Five GPL vivid neon pattern presets (grid, tubes, lasers, signage, circuit) |
 | `jelly/` | Five GPL jelly relief / machine-code scroll presets |
 | `rush/` | Twelve GPL forward-zoom waveform geometry / flyover presets |
+| `cellular/` | Five GPL presets: mercury puddles, Giger radial, heat-temper neon |
 | `modern/` | Nine MIT MilkDrop 2 / mock-3D presets (M0Rf30) |
 | `LICENSE` | GPL notice for the original in-tree presets |
 

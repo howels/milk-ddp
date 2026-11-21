@@ -1,0 +1,374 @@
+[preset00]
+MILKDROP_PRESET_VERSION=201
+PSVERSION=2
+PSVERSION_WARP=2
+PSVERSION_COMP=2
+fRating=5.000000
+fGammaAdj=1.100000
+fDecay=0.988000
+fVideoEchoZoom=1.000000
+fVideoEchoAlpha=0.000000
+nVideoEchoOrientation=0
+nWaveMode=0
+bAdditiveWaves=0
+bWaveDots=0
+bWaveThick=0
+bModWaveAlphaByVolume=0
+bMaximizeWaveColor=0
+bTexWrap=1
+bDarkenCenter=0
+bRedBlueStereo=0
+bBrighten=0
+bDarken=0
+bSolarize=0
+bInvert=0
+fWaveAlpha=0.000000
+fWaveScale=1.000000
+fWaveSmoothing=0.500000
+fWaveParam=0.000000
+fModWaveAlphaStart=0.750000
+fModWaveAlphaEnd=0.950000
+fWarpAnimSpeed=1.000000
+fWarpScale=1.000000
+fZoomExponent=1.000000
+fShader=0.000000
+zoom=1.000000
+rot=0.000000
+cx=0.500000
+cy=0.500000
+dx=0.000000
+dy=0.000000
+warp=0.000000
+sx=1.000000
+sy=1.000000
+wave_r=0.500000
+wave_g=0.500000
+wave_b=0.500000
+wave_x=0.500000
+wave_y=0.500000
+ob_size=0.000000
+ob_r=0.000000
+ob_g=0.000000
+ob_b=0.000000
+ob_a=0.000000
+ib_size=0.000000
+ib_r=0.000000
+ib_g=0.000000
+ib_b=0.000000
+ib_a=0.000000
+nMotionVectorsX=0.000000
+nMotionVectorsY=0.000000
+mv_dx=0.000000
+mv_dy=0.000000
+mv_l=0.000000
+mv_r=0.000000
+mv_g=0.000000
+mv_b=0.000000
+mv_a=0.000000
+per_frame_1=dt = min(max(time - tl, 0.004), 0.08); tl = time;
+per_frame_2=bm = bm + (bass - bm) * (1 - exp(-dt / 0.45));
+per_frame_3=bd = bd + (abs(bass - bm) - bd) * (1 - exp(-dt / 1.5));
+per_frame_4=hit = min(max(((bass - bm) / max(bd, 0.06) - 0.45) / 1.05, 0), 1);
+per_frame_5=kick = max(kick * pow(0.80, 60 * dt), hit);
+per_frame_6=k60 = pow(0.90, 60 * dt);
+per_frame_7=sb = sb * k60 + bass_att * (1 - k60);
+per_frame_8=sm = sm * k60 + mid_att * (1 - k60);
+per_frame_9=st = st * k60 + treb_att * (1 - k60);
+per_frame_10=energy = min(sb * 1.15 + sm * 0.35 + st * 0.15, 2.2);
+per_frame_11=grow = min(max(energy * 0.880 + kick * 0.650, 0), 1.15);
+per_frame_12=ang = ang + dt * (0.0080 + 0.0200 * st + 0.05 * kick);
+per_frame_13=scroll = scroll + dt * (0.0600 + 0.12 * sb + 0.08 * st);
+per_frame_14=flow = sin(time * 0.180 + sm * 1.4);
+per_frame_15=q1 = kick; q2 = sb; q3 = sm; q4 = st; q5 = ang;
+per_frame_16=q6 = grow; q7 = 6.800; q8 = 0.550; q9 = scroll;
+per_frame_17=q10 = 0.450; q11 = 0.950; q12 = flow;
+per_frame_18=q13 = 0.95 + 0.16 * energy + 0.1 * kick;
+per_frame_19=light_ang = light_ang + dt * (0.55 + 1.55 * st + 1.05 * kick + 0.4 * sb);
+per_frame_20=q14 = light_ang; q15 = 0.45 + 0.4 * energy;
+warp_1=`float2 rot2(float2 p, float a)
+warp_2=`{
+warp_3=`  float c = cos(a); float s = sin(a);
+warp_4=`  return float2(c*p.x - s*p.y, s*p.x + c*p.y);
+warp_5=`}
+warp_6=`float hash11(float n)
+warp_7=`{
+warp_8=`  return frac(sin(n) * 43758.5453);
+warp_9=`}
+warp_10=`float2 hash22(float2 p)
+warp_11=`{
+warp_12=`  float n = sin(dot(p, float2(127.1, 311.7))) * 43758.5453;
+warp_13=`  return frac(float2(n, n * 1.215433));
+warp_14=`}
+warp_15=`float noise2(float2 p)
+warp_16=`{
+warp_17=`  float2 i = floor(p);
+warp_18=`  float2 f = frac(p);
+warp_19=`  f = f * f * (3.0 - 2.0 * f);
+warp_20=`  float a = hash11(i.x + i.y * 57.0);
+warp_21=`  float b = hash11(i.x + 1.0 + i.y * 57.0);
+warp_22=`  float c = hash11(i.x + (i.y + 1.0) * 57.0);
+warp_23=`  float d = hash11(i.x + 1.0 + (i.y + 1.0) * 57.0);
+warp_24=`  return lerp(lerp(a, b, f.x), lerp(c, d, f.x), f.y);
+warp_25=`}
+warp_26=`float fbm2(float2 p)
+warp_27=`{
+warp_28=`  float a = 0.0;
+warp_29=`  float w = 0.5;
+warp_30=`  for (int i = 0; i < 4; i++)
+warp_31=`  {
+warp_32=`    a += w * noise2(p);
+warp_33=`    p = p * 2.07 + float2(17.0, 9.0);
+warp_34=`    w *= 0.5;
+warp_35=`  }
+warp_36=`  return a;
+warp_37=`}
+warp_38=`float3 led_tonemap(float3 col)
+warp_39=`{
+warp_40=`  float lum = max(dot(col, float3(0.30, 0.59, 0.11)), 0.0001);
+warp_41=`  float mapped = 1.0 - exp(-lum * 0.95);
+warp_42=`  mapped = min(mapped, 0.82);
+warp_43=`  float3 outc = (col / lum) * mapped * q13;
+warp_44=`  outc += col * pow(mapped, 2.5) * q1 * 0.12;
+warp_45=`  return saturate(outc);
+warp_46=`}
+warp_47=`float3 studio_env(float3 R)
+warp_48=`{
+warp_49=`  float u = R.y;
+warp_50=`  float3 sky = lerp(float3(0.55, 0.42, 0.22), float3(0.18, 0.16, 0.28), saturate(0.3 + u * 0.55));
+warp_51=`  float3 gnd = lerp(float3(0.02, 0.015, 0.01), float3(0.12, 0.08, 0.05), saturate(0.25 - u * 0.5));
+warp_52=`  float3 env = lerp(gnd, sky, smoothstep(-0.2, 0.18, u));
+warp_53=`  float box1 = pow(saturate(sin(R.x * 3.2 + R.z * 1.1 + q9 * 0.35)), 14.0);
+warp_54=`  float box2 = pow(saturate(sin(R.x * -2.0 + R.y * 3.5 - q9 * 0.2)), 20.0);
+warp_55=`  env += float3(0.85, 0.55, 0.18) * box1 * 0.55;
+warp_56=`  env += float3(0.35, 0.55, 0.45) * box2 * 0.4;
+warp_57=`  env += float3(0.4, 0.25, 0.55) * pow(saturate(-R.x * 0.45 + 0.15), 3.5) * 0.2;
+warp_58=`  return env;
+warp_59=`}
+warp_60=`float3 heat_temper(float u)
+warp_61=`{
+warp_62=`  float t = frac(u);
+warp_63=`  float3 purple = float3(0.75, 0.12, 0.95);
+warp_64=`  float3 green = float3(0.08, 0.95, 0.35);
+warp_65=`  float3 blue = float3(0.15, 0.45, 1.0);
+warp_66=`  float3 c = lerp(purple, green, smoothstep(0.0, 0.38, t));
+warp_67=`  c = lerp(c, blue, smoothstep(0.32, 0.72, t));
+warp_68=`  c = lerp(c, purple, smoothstep(0.68, 1.0, t));
+warp_69=`  return c;
+warp_70=`}
+warp_71=`float3 mercury_light(float3 Nor, float3 tint, float ht, float mask, float fres_amt)
+warp_72=`{
+warp_73=`  float3 V = float3(0.0, 0.0, 1.0);
+warp_74=`  float3 R = float3(2.0 * Nor.z * Nor.x, 2.0 * Nor.z * Nor.y, 2.0 * Nor.z * Nor.z - 1.0);
+warp_75=`  float3 env = studio_env(normalize(R + float3(0.0, 0.06, 0.0)));
+warp_76=`  float ndv = saturate(dot(Nor, V));
+warp_77=`  float fres = pow(1.0 - ndv, 2.2) * fres_amt;
+warp_78=`  float3 valley = tint * 0.1;
+warp_79=`  float3 crestc = tint * 1.35;
+warp_80=`  float3 shade = lerp(valley, crestc, pow(saturate(ht), 1.15));
+warp_81=`  float3 metal = shade * (0.5 + 0.75 * env);
+warp_82=`  metal += env * fres * tint * 0.95;
+warp_83=`  float3 L1 = normalize(float3(cos(q14) * 0.95, sin(q14) * 0.95, 0.38 + 0.22 * q15));
+warp_84=`  float3 L2 = normalize(float3(cos(q14 + 2.3) * 0.55, sin(q14 + 2.3) * 0.55, 0.6));
+warp_85=`  float shin = 36.0 + 100.0 * q11;
+warp_86=`  float sp = pow(saturate(dot(R, L1)), shin) * 1.15 + pow(saturate(dot(R, L2)), shin * 0.55) * 0.5;
+warp_87=`  metal += tint * 1.25 * sp;
+warp_88=`  float edge = pow(1.0 - ndv, 1.5);
+warp_89=`  metal += tint * edge * (0.55 + 0.6 * ht);
+warp_90=`  float ndl = saturate(dot(Nor, L1) * 0.55 + 0.45);
+warp_91=`  metal *= 0.5 + 0.5 * ndl;
+warp_92=`  return metal * mask;
+warp_93=`}
+warp_94=`shader_body
+warp_95=`{
+warp_96=`  float2 p = uv - 0.5;
+warp_97=`  float z = 0.978 - 0.025 * q1 - 0.018 * q2;
+warp_98=`  float2 suv = 0.5 + p * z;
+warp_99=`  float2 w = float2(
+warp_100=`    noise2(uv * 2.8 + float2(time * 0.03, q9 * 0.15)),
+warp_101=`    noise2(uv * 2.8 + float2(4.7, time * 0.025)));
+warp_102=`  suv += (w - 0.5) * (0.006 + 0.008 * q8);
+warp_103=`  suv = lerp(suv, uv_orig, 0.16);
+warp_104=`  float3 prev = tex2D(sampler_main, suv).rgb;
+warp_105=`  float3 blur = GetBlur1(suv);
+warp_106=`  float3 retc = prev * 0.93 + blur * 0.05;
+warp_107=`  retc *= 0.99 - 0.006 * q1;
+warp_108=`  ret = max(retc - 0.0012, 0.0);
+warp_109=`}
+comp_1=`float2 rot2(float2 p, float a)
+comp_2=`{
+comp_3=`  float c = cos(a); float s = sin(a);
+comp_4=`  return float2(c*p.x - s*p.y, s*p.x + c*p.y);
+comp_5=`}
+comp_6=`float hash11(float n)
+comp_7=`{
+comp_8=`  return frac(sin(n) * 43758.5453);
+comp_9=`}
+comp_10=`float2 hash22(float2 p)
+comp_11=`{
+comp_12=`  float n = sin(dot(p, float2(127.1, 311.7))) * 43758.5453;
+comp_13=`  return frac(float2(n, n * 1.215433));
+comp_14=`}
+comp_15=`float noise2(float2 p)
+comp_16=`{
+comp_17=`  float2 i = floor(p);
+comp_18=`  float2 f = frac(p);
+comp_19=`  f = f * f * (3.0 - 2.0 * f);
+comp_20=`  float a = hash11(i.x + i.y * 57.0);
+comp_21=`  float b = hash11(i.x + 1.0 + i.y * 57.0);
+comp_22=`  float c = hash11(i.x + (i.y + 1.0) * 57.0);
+comp_23=`  float d = hash11(i.x + 1.0 + (i.y + 1.0) * 57.0);
+comp_24=`  return lerp(lerp(a, b, f.x), lerp(c, d, f.x), f.y);
+comp_25=`}
+comp_26=`float fbm2(float2 p)
+comp_27=`{
+comp_28=`  float a = 0.0;
+comp_29=`  float w = 0.5;
+comp_30=`  for (int i = 0; i < 4; i++)
+comp_31=`  {
+comp_32=`    a += w * noise2(p);
+comp_33=`    p = p * 2.07 + float2(17.0, 9.0);
+comp_34=`    w *= 0.5;
+comp_35=`  }
+comp_36=`  return a;
+comp_37=`}
+comp_38=`float3 led_tonemap(float3 col)
+comp_39=`{
+comp_40=`  float lum = max(dot(col, float3(0.30, 0.59, 0.11)), 0.0001);
+comp_41=`  float mapped = 1.0 - exp(-lum * 0.95);
+comp_42=`  mapped = min(mapped, 0.82);
+comp_43=`  float3 outc = (col / lum) * mapped * q13;
+comp_44=`  outc += col * pow(mapped, 2.5) * q1 * 0.12;
+comp_45=`  return saturate(outc);
+comp_46=`}
+comp_47=`float3 studio_env(float3 R)
+comp_48=`{
+comp_49=`  float u = R.y;
+comp_50=`  float3 sky = lerp(float3(0.55, 0.42, 0.22), float3(0.18, 0.16, 0.28), saturate(0.3 + u * 0.55));
+comp_51=`  float3 gnd = lerp(float3(0.02, 0.015, 0.01), float3(0.12, 0.08, 0.05), saturate(0.25 - u * 0.5));
+comp_52=`  float3 env = lerp(gnd, sky, smoothstep(-0.2, 0.18, u));
+comp_53=`  float box1 = pow(saturate(sin(R.x * 3.2 + R.z * 1.1 + q9 * 0.35)), 14.0);
+comp_54=`  float box2 = pow(saturate(sin(R.x * -2.0 + R.y * 3.5 - q9 * 0.2)), 20.0);
+comp_55=`  env += float3(0.85, 0.55, 0.18) * box1 * 0.55;
+comp_56=`  env += float3(0.35, 0.55, 0.45) * box2 * 0.4;
+comp_57=`  env += float3(0.4, 0.25, 0.55) * pow(saturate(-R.x * 0.45 + 0.15), 3.5) * 0.2;
+comp_58=`  return env;
+comp_59=`}
+comp_60=`float3 heat_temper(float u)
+comp_61=`{
+comp_62=`  float t = frac(u);
+comp_63=`  float3 purple = float3(0.75, 0.12, 0.95);
+comp_64=`  float3 green = float3(0.08, 0.95, 0.35);
+comp_65=`  float3 blue = float3(0.15, 0.45, 1.0);
+comp_66=`  float3 c = lerp(purple, green, smoothstep(0.0, 0.38, t));
+comp_67=`  c = lerp(c, blue, smoothstep(0.32, 0.72, t));
+comp_68=`  c = lerp(c, purple, smoothstep(0.68, 1.0, t));
+comp_69=`  return c;
+comp_70=`}
+comp_71=`float3 mercury_light(float3 Nor, float3 tint, float ht, float mask, float fres_amt)
+comp_72=`{
+comp_73=`  float3 V = float3(0.0, 0.0, 1.0);
+comp_74=`  float3 R = float3(2.0 * Nor.z * Nor.x, 2.0 * Nor.z * Nor.y, 2.0 * Nor.z * Nor.z - 1.0);
+comp_75=`  float3 env = studio_env(normalize(R + float3(0.0, 0.06, 0.0)));
+comp_76=`  float ndv = saturate(dot(Nor, V));
+comp_77=`  float fres = pow(1.0 - ndv, 2.2) * fres_amt;
+comp_78=`  float3 valley = tint * 0.1;
+comp_79=`  float3 crestc = tint * 1.35;
+comp_80=`  float3 shade = lerp(valley, crestc, pow(saturate(ht), 1.15));
+comp_81=`  float3 metal = shade * (0.5 + 0.75 * env);
+comp_82=`  metal += env * fres * tint * 0.95;
+comp_83=`  float3 L1 = normalize(float3(cos(q14) * 0.95, sin(q14) * 0.95, 0.38 + 0.22 * q15));
+comp_84=`  float3 L2 = normalize(float3(cos(q14 + 2.3) * 0.55, sin(q14 + 2.3) * 0.55, 0.6));
+comp_85=`  float shin = 36.0 + 100.0 * q11;
+comp_86=`  float sp = pow(saturate(dot(R, L1)), shin) * 1.15 + pow(saturate(dot(R, L2)), shin * 0.55) * 0.5;
+comp_87=`  metal += tint * 1.25 * sp;
+comp_88=`  float edge = pow(1.0 - ndv, 1.5);
+comp_89=`  metal += tint * edge * (0.55 + 0.6 * ht);
+comp_90=`  float ndl = saturate(dot(Nor, L1) * 0.55 + 0.45);
+comp_91=`  metal *= 0.5 + 0.5 * ndl;
+comp_92=`  return metal * mask;
+comp_93=`}
+comp_94=`shader_body
+comp_95=`{
+comp_96=`  float2 p = (uv - 0.5) * aspect.xy;
+comp_97=`  p = rot2(p, q5 * 0.06);
+comp_98=`  float2 warp = float2(
+comp_99=`    fbm2(p * 2.4 + float2(q9 * 0.4, time * 0.05)),
+comp_100=`    fbm2(p * 2.4 + float2(9.2, q9 * 0.3 - time * 0.04)));
+comp_101=`  p += (warp - 0.5) * (0.28 + 0.22 * q8);
+comp_102=`  p += float2(q12, -q12 * 0.7) * 0.04;
+comp_103=`  float2 x = p * q7 + float2(q9 * 0.12, -q9 * 0.18);
+comp_104=`  float2 n = floor(x);
+comp_105=`  float2 f = frac(x);
+comp_106=`  float field = 0.0;
+comp_107=`  float field_x = 0.0;
+comp_108=`  float field_y = 0.0;
+comp_109=`  float2 cid = float2(0.0, 0.0);
+comp_110=`  float best = 0.0;
+comp_111=`  float2 eps = float2(0.035, 0.0);
+comp_112=`  for (int j = -1; j <= 1; j++)
+comp_113=`  {
+comp_114=`    for (int i = -1; i <= 1; i++)
+comp_115=`    {
+comp_116=`      float2 g = float2(i, j);
+comp_117=`      float2 id = n + g;
+comp_118=`      float2 o = hash22(id);
+comp_119=`      float seed = hash11(dot(id, float2(12.9898, 78.233)));
+comp_120=`      float phase = seed * 6.2831853;
+comp_121=`      float swell = 0.5 + 0.5 * sin(time * (1.1 + 2.8 * seed) + phase + q3 * 0.8);
+comp_122=`      float beat_pop = smoothstep(seed - 0.05, seed + 0.2, q1) * q1;
+comp_123=`      float local_g = saturate(
+comp_124=`        q6 * (0.2 + 0.8 * seed) * (0.45 + 0.55 * swell)
+comp_125=`        + beat_pop * (0.55 + 0.45 * seed)
+comp_126=`        + q2 * (0.12 + 0.2 * (1.0 - seed)));
+comp_127=`      float2 drift = float2(
+comp_128=`        sin(time * (0.55 + 1.4 * seed) + phase),
+comp_129=`        cos(time * (0.4 + 1.1 * seed) + phase * 1.3));
+comp_130=`      drift += float2(
+comp_131=`        sin(time * (1.8 + seed) + phase * 2.0 + q1 * 2.5),
+comp_132=`        cos(time * (1.5 + 0.7 * seed) + q2 * 1.8)) * (0.35 + 0.65 * q1);
+comp_133=`      o = 0.5 + 0.38 * sin(6.2831853 * o + float2(time * q10 * (0.35 + seed), time * q10 * 0.5 + phase));
+comp_134=`      o += drift * (0.12 + 0.1 * q10 + 0.08 * local_g);
+comp_135=`      float2 r = g + o - f;
+comp_136=`      float d2 = dot(r, r);
+comp_137=`      float sharp = 3.2 + 10.0 * (1.05 - local_g);
+comp_138=`      float blob = local_g * exp(-d2 * sharp);
+comp_139=`      field += blob;
+comp_140=`      float2 rx = g + o - (f + eps.xy);
+comp_141=`      float2 ry = g + o - (f + eps.yx);
+comp_142=`      field_x += local_g * exp(-dot(rx, rx) * sharp);
+comp_143=`      field_y += local_g * exp(-dot(ry, ry) * sharp);
+comp_144=`      if (blob > best)
+comp_145=`      {
+comp_146=`        best = blob;
+comp_147=`        cid = id;
+comp_148=`      }
+comp_149=`    }
+comp_150=`  }
+comp_151=`  float cell_var = hash11(dot(cid, float2(19.19, 47.47)));
+comp_152=`  float rip1 = fbm2(p * 6.5 + float2(time * 0.11, cell_var));
+comp_153=`  float rip2 = fbm2(p * 14.0 - float2(time * 0.19, cell_var * 3.0));
+comp_154=`  float rip = (rip1 - 0.5) * 0.55 + (rip2 - 0.5) * 0.3;
+comp_155=`  field += rip * 0.14 * saturate(field);
+comp_156=`  float thresh = 0.42;
+comp_157=`  float gfill = smoothstep(thresh - 0.08, thresh + 0.12 + 0.1 * q6, field);
+comp_158=`  float meniscus = smoothstep(0.12, 0.5, gfill) * (1.0 - smoothstep(0.5, 0.98, gfill));
+comp_159=`  float ht = saturate(gfill * 0.7 + meniscus * 0.7 + rip * 0.45 * gfill);
+comp_160=`  float dhx = (field_x - field) / eps.x;
+comp_161=`  float dhy = (field_y - field) / eps.x;
+comp_162=`  dhx += (noise2(p * 13.0 + float2(time * 0.2, 1.3)) - 0.5) * 1.8;
+comp_163=`  dhy += (noise2(p * 13.0 + float2(4.7, -time * 0.17)) - 0.5) * 1.8;
+comp_164=`  dhx += (rip1 - rip2) * 1.2;
+comp_165=`  float relief = 2.8 + 2.4 * ht + 0.9 * q11;
+comp_166=`  float3 Nor = normalize(float3(-dhx * relief, -dhy * relief, 0.14 + 0.22 * ht + 0.05 * q1));
+comp_167=`  float ridge = saturate(1.0 - abs(field - thresh) * 3.5);
+comp_168=`  float3 charcoal = float3(0.015, 0.012, 0.010);
+comp_169=`  float3 hi_f0 = float3(0.950, 0.620, 0.180);
+comp_170=`  float3 lo_f0 = float3(0.700, 0.320, 0.080);
+comp_171=`  float3 tint = lerp(lo_f0, hi_f0, saturate(ht * 0.85 + 0.15 * cell_var));
+comp_172=`  float3 lit = mercury_light(Nor, tint, ht, gfill, 1.1);
+comp_173=`  float3 col = lerp(charcoal, lit, gfill);
+comp_174=`  col += hi_f0 * pow(meniscus, 1.15) * gfill * (0.55 + 0.4 * q4);
+comp_175=`  col += lo_f0 * (1.0 - ht) * gfill * 0.25;
+comp_176=`  col += hi_f0 * gfill * q1 * 0.1;
+comp_177=`  ret = led_tonemap(col);
+comp_178=`}

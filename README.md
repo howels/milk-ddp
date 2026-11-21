@@ -242,6 +242,7 @@ In-tree packs:
 - `presets/neon/` — original **GPL** vivid neon grids, tubes, lasers, signage, circuit traces
 - `presets/jelly/` — original **GPL** gelatinous relief / machine-code scrolls (Machine Code Jelly–inspired)
 - `presets/rush/` — original **GPL** forward-zoom tunnels from waveform-driven geometry
+- `presets/cellular/` — original **GPL** mercury puddles, Giger radial, heat-temper neon
 - `presets/modern/` — **MIT** MilkDrop 2 / mock-3D selection (M0Rf30): Fractal Sanctum, hyperspace, nebulae, kaleidoscope
 
 ```bash
@@ -270,11 +271,15 @@ In-tree packs:
   --ddp 192.168.1.50:4048 --audio pulse
 
 ./build/milk-ddp --width 128 --height 128 \
+  --preset-path ./presets/cellular --switch-delay 35 \
+  --ddp 192.168.1.50:4048 --audio pulse
+
+./build/milk-ddp --width 128 --height 128 \
   --preset-path ./presets/modern --switch-delay 45 \
   --ddp 192.168.1.50:4048 --audio pulse
 ```
 
-Details: [`presets/README.md`](presets/README.md), [`presets/rush/README.md`](presets/rush/README.md), [`presets/jelly/README.md`](presets/jelly/README.md), [`presets/neon/README.md`](presets/neon/README.md), [`presets/surfaces/README.md`](presets/surfaces/README.md), [`presets/fractal/README.md`](presets/fractal/README.md), [`presets/modern/README.md`](presets/modern/README.md).
+Details: [`presets/README.md`](presets/README.md), [`presets/cellular/README.md`](presets/cellular/README.md), [`presets/rush/README.md`](presets/rush/README.md), [`presets/jelly/README.md`](presets/jelly/README.md), [`presets/neon/README.md`](presets/neon/README.md), [`presets/surfaces/README.md`](presets/surfaces/README.md), [`presets/fractal/README.md`](presets/fractal/README.md), [`presets/modern/README.md`](presets/modern/README.md).
 
 CPU cost notes (software GL vs GPU, resolution, mesh): [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md).
 
@@ -400,7 +405,7 @@ Pixels are sent row-major, left to right, top to bottom, RGB888. That matches a 
 | Component | Licence |
 |---|---|
 | milk-ddp application (`src/`, `tests/`, build files) | **GPL-3.0-or-later** (`LICENSE`) |
-| In-tree GPL presets (`presets/milk-ddp-*.milk`, `lowres/`, `fractal/`, `surfaces/`, `neon/`, `jelly/`, `rush/`) | **GPL-3.0-or-later** |
+| In-tree GPL presets (`presets/milk-ddp-*.milk`, `lowres/`, `fractal/`, `surfaces/`, `neon/`, `jelly/`, `rush/`, `cellular/`) | **GPL-3.0-or-later** |
 | `presets/modern/` (M0Rf30 selection) | **MIT** |
 | libprojectM (FetchContent / local / system) | **LGPL-2.1-or-later** — see `THIRD_PARTY.md` |
 | External preset packs (Cream of the Crop, textures, …) | **Not shipped**; each pack’s own terms |

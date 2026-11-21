@@ -74,12 +74,12 @@ per_frame_6=k60 = pow(0.96, 60 * dt);
 per_frame_7=sb = sb * k60 + bass_att * (1 - k60);
 per_frame_8=sm = sm * k60 + mid_att * (1 - k60);
 per_frame_9=st = st * k60 + treb_att * (1 - k60);
-per_frame_10=zoom_amt = 1.8000 + 0.3500 * sb + 0.5000 * kick;
-per_frame_11=ang = ang + dt * (0.0200 + 0.0800 * st + 0.08 * kick);
-per_frame_12=cx_j = -0.7500 + 0.1200 * sin(time * 0.0500) + 0.04 * sin(time * 0.61) * st;
-per_frame_13=cy_j = 0.1200 + 0.1000 * cos(time * 0.0700 + 0.7) + 0.03 * cos(time * 0.47) * sm;
+per_frame_10=zoom_amt = 0.8500 + 0.1800 * sb + 0.2800 * kick;
+per_frame_11=ang = ang + dt * (0.0150 + 0.0600 * st + 0.08 * kick);
+per_frame_12=cx_j = -0.7000 + 0.1400 * sin(time * 0.0500) + 0.04 * sin(time * 0.61) * st;
+per_frame_13=cy_j = 0.0000 + 0.1000 * cos(time * 0.0700 + 0.7) + 0.03 * cos(time * 0.47) * sm;
 per_frame_14=q1 = kick; q2 = cx_j; q3 = cy_j; q4 = zoom_amt; q5 = ang;
-per_frame_15=q6 = sb; q7 = sm; q8 = st; q9 = 0.5500; q10 = 1.0000;
+per_frame_15=q6 = sb; q7 = sm; q8 = st; q9 = 0.5500; q10 = 1.4500;
 per_frame_16=q11 = sin(time * 0.37 + 0.9 * st); q12 = cos(time * 0.23 + 0.6 * sm); q13 = sin(time * 0.51 + sb);
 warp_1=`float2 cmul(float2 a, float2 b)
 warp_2=`{
