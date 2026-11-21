@@ -228,7 +228,7 @@ docker run --rm --network host \
   ghcr.io/howels/milk-ddp:latest --software-gl --ddp 192.168.1.50 --preset-path /presets
 ```
 
-Release assets also include `docker save` tarballs (`*-alpine-*.tar.gz`, `*-debian-*.tar.gz`) for offline `docker load` when GHCR is unreachable.
+GitHub Release assets are host binaries only (`milk-ddp-*-linux-{amd64,arm64}.tar.gz`). Pull containers from GHCR as above.
 
 ## Presets
 
@@ -324,7 +324,7 @@ GitHub-compatible workflows live under `.github/workflows/`:
 | Workflow | Trigger | Action |
 |---|---|---|
 | `ci.yml` | push / PR | Build and validate on amd64 and arm64; build Alpine and Debian images for both arches |
-| `release.yml` | tag `v*` (must be on `main`); also `workflow_dispatch` | Host tarballs and `docker save` archives for amd64 and arm64; push multi-arch images to `ghcr.io/howels/milk-ddp` (**Alpine** preferred: `:vX` / `:latest`; Debian `:vX-debian`). Re-pushing the same tag republishes assets and GHCR tags. |
+| `release.yml` | tag `v*` (must be on `main`); also `workflow_dispatch` | Attach amd64/arm64 host binary tarballs; push multi-arch images to `ghcr.io/howels/milk-ddp` (**Alpine** preferred: `:vX` / `:latest`; Debian `:vX-debian`) and link those pulls in the release notes. Re-pushing the same tag republishes. |
 | `renovate.yml` | weekly cron (Monday 06:00 UTC) and `workflow_dispatch` | Self-hosted Renovate opens PRs for Actions, Docker base images, and the libprojectM FetchContent tag |
 
 ### Cutting a release
@@ -338,8 +338,8 @@ make release VERSION=v0.1.2
 
 `scripts/release.sh` runs `make validate`, keeps the CMake `project(… VERSION …)`
 in sync with the tag, creates an annotated tag, pushes it to `origin`, and watches
-the Release workflow until host tarballs and GHCR images are published. The workflow
-refuses tags whose commit is not reachable from `origin/main`.
+the Release workflow until host binary tarballs are attached and GHCR images are
+published. The workflow refuses tags whose commit is not reachable from `origin/main`.
 
 Useful environment flags: `SKIP_VALIDATE=1`, `WATCH=0`, `RELEASE_ALLOW_DIRTY=1`.
 

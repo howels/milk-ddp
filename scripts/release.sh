@@ -14,9 +14,9 @@
 #      With REPUBLISH=1, delete and recreate an existing tag, then force-push it.
 #   6. Watch .github/workflows/release.yml until it finishes.
 #
-# The workflow builds amd64/arm64 host tarballs, Alpine/Debian images, pushes
-# multi-arch manifests to ghcr.io/howels/milk-ddp, and attaches assets to the
-# GitHub Release (overwriting same-named assets on republish).
+# The workflow builds amd64/arm64 host binary tarballs, pushes Alpine/Debian
+# multi-arch images to ghcr.io/howels/milk-ddp, attaches only the host tarballs
+# to the GitHub Release, and links the GHCR pulls in the release notes.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

@@ -115,7 +115,7 @@ jobs:
       - name: Build container images
         run: |
           mkdir -p third_party && touch third_party/.gitkeep
-          # Alpine is the preferred release image.
+          # Alpine is the preferred release image. Publish to GHCR only (no docker-save assets).
           docker build -f Dockerfile.alpine \
             -t "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}-alpine-${{ matrix.arch }}" \
             -t "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}-${{ matrix.arch }}" \
@@ -123,12 +123,6 @@ jobs:
           docker build -f Dockerfile.debian \
             -t "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}-debian-${{ matrix.arch }}" \
             .
-          docker save \
-            "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}-alpine-${{ matrix.arch }}" \
-            | gzip > "milk-ddp-${{ steps.ver.outputs.version }}-alpine-${{ matrix.arch }}.tar.gz"
-          docker save \
-            "ghcr.io/${{ github.repository }}:${{ steps.ver.outputs.tag }}-debian-${{ matrix.arch }}" \
-            | gzip > "milk-ddp-${{ steps.ver.outputs.version }}-debian-${{ matrix.arch }}.tar.gz"
 
       - name: Smoke-test container images
         run: |
@@ -176,8 +170,6 @@ jobs:
           name: release-${{ matrix.arch }}
           path: |
             milk-ddp-${{ steps.ver.outputs.version }}-linux-${{ matrix.arch }}.tar.gz
-            milk-ddp-${{ steps.ver.outputs.version }}-alpine-${{ matrix.arch }}.tar.gz
-            milk-ddp-${{ steps.ver.outputs.version }}-debian-${{ matrix.arch }}.tar.gz
           if-no-files-found: error
 
   release:
@@ -229,30 +221,24 @@ jobs:
 
             Headless projectM → DDP for WLED matrices.
 
-            **Licence:** GPL-3.0-or-later (application and in-tree presets).
-            **libprojectM:** ${{ needs.build.outputs.projectm }} (LGPL-2.1-or-later) — see `THIRD_PARTY.md` in the tarball.
+            **libprojectM:** ${{ needs.build.outputs.projectm }} (LGPL-2.1-or-later) — see `THIRD_PARTY.md` in the host tarball.
 
             ### Host binaries
-            - `milk-ddp-*-linux-amd64.tar.gz`
-            - `milk-ddp-*-linux-arm64.tar.gz`
+            - `milk-ddp-${{ needs.build.outputs.version }}-linux-amd64.tar.gz`
+            - `milk-ddp-${{ needs.build.outputs.version }}-linux-arm64.tar.gz`
 
-            ### Container images (docker load)
-            Alpine is preferred (`:latest` / untagged version on GHCR).
-            - `*-alpine-amd64.tar.gz` / `*-alpine-arm64.tar.gz`
-            - `*-debian-amd64.tar.gz` / `*-debian-arm64.tar.gz`
+            ### Container images (GHCR)
+            Alpine is preferred (`:latest` / `:${{ needs.build.outputs.tag }}`). Multi-arch manifests cover amd64 and arm64.
 
-            ### GHCR
             ```
             docker pull ghcr.io/${{ github.repository }}:${{ needs.build.outputs.tag }}
             docker pull ghcr.io/${{ github.repository }}:${{ needs.build.outputs.tag }}-alpine
             docker pull ghcr.io/${{ github.repository }}:${{ needs.build.outputs.tag }}-debian
             ```
 
+            Single-arch tags: `${{ needs.build.outputs.tag }}-alpine-amd64`, `${{ needs.build.outputs.tag }}-alpine-arm64`, `${{ needs.build.outputs.tag }}-debian-amd64`, `${{ needs.build.outputs.tag }}-debian-arm64`.
+
             Large Milkdrop packs (Cream of the Crop, textures) are **not** included; see `presets/README.md`.
           files: |
             milk-ddp-${{ needs.build.outputs.version }}-linux-amd64.tar.gz
             milk-ddp-${{ needs.build.outputs.version }}-linux-arm64.tar.gz
-            milk-ddp-${{ needs.build.outputs.version }}-alpine-amd64.tar.gz
-            milk-ddp-${{ needs.build.outputs.version }}-alpine-arm64.tar.gz
-            milk-ddp-${{ needs.build.outputs.version }}-debian-amd64.tar.gz
-            milk-ddp-${{ needs.build.outputs.version }}-debian-arm64.tar.gz
