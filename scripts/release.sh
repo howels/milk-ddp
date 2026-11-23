@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 milk-ddp contributors
 # Cut a tagged GitHub release for milk-ddp.
 #
 #   scripts/release.sh v0.1.2

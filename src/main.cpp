@@ -232,7 +232,9 @@ int main(int argc, char** argv)
                       << (cfg.pause_when_silent ? "on" : "off");
             if (cfg.pause_when_silent) {
                 std::cerr << " (hold=" << cfg.silence_hold
-                          << "s thr=" << cfg.silence_threshold << ")";
+                          << "s thr=" << cfg.silence_threshold
+                          << " black=" << (cfg.black_on_silence ? "on" : "off")
+                          << ")";
             }
             std::cerr << "\n";
             if (!single_preset.empty()) {
@@ -344,8 +346,27 @@ int main(int argc, char** argv)
             const unsigned int this_feed =
                 in_soft_cut ? std::min(max_pcm, feed * 2u) : feed;
 
-            audio->fill(pcm, this_feed);
-            const float peak = pcm_peak_abs(pcm);
+            // While paused we only wake at 5 Hz. Drain ~one poll-interval of PCM
+            // so silence detection sees current audio instead of a backlog of
+            // zeros left when capture outran the slow poll (common when the
+            // monitor was silent from process start).
+            const bool catching_up = render_paused;
+            float peak = 0.0f;
+            if (catching_up) {
+                audio->nudge_while_paused();
+                const unsigned int catchup = static_cast<unsigned int>(
+                    std::max(1, audio->sample_rate() / 5));
+                unsigned int got = 0;
+                while (got < catchup) {
+                    const unsigned int chunk = std::min(max_pcm, catchup - got);
+                    audio->fill(pcm, chunk);
+                    peak = std::max(peak, pcm_peak_abs(pcm));
+                    got += chunk;
+                }
+            } else {
+                audio->fill(pcm, this_feed);
+                peak = pcm_peak_abs(pcm);
+            }
             const bool silent = peak < cfg.silence_threshold;
             if (!silent) {
                 silence_since = now_pre;
@@ -354,6 +375,11 @@ int main(int argc, char** argv)
                 std::chrono::duration<double>(now_pre - silence_since).count() >=
                     cfg.silence_hold;
             if (want_pause != render_paused) {
+                if (want_pause && cfg.black_on_silence) {
+                    std::fill(rgb.begin(), rgb.end(), static_cast<unsigned char>(0));
+                    ddp.send_rgb_frame(rgb.data(),
+                                       static_cast<std::size_t>(cfg.width) * cfg.height);
+                }
                 render_paused = want_pause;
                 if (!cfg.quiet) {
                     std::cerr << (render_paused ? "audio idle; render paused\n"
@@ -362,6 +388,11 @@ int main(int argc, char** argv)
             }
 
             if (!render_paused) {
+                if (catching_up) {
+                    // Catch-up left pcm as the last drained chunk; take a fresh
+                    // frame-sized buffer for projectM now that we are live again.
+                    audio->fill(pcm, this_feed);
+                }
                 if (!pcm.empty()) {
                     projectm_pcm_add_float(pm.get(), pcm.data(), this_feed, PROJECTM_STEREO);
                 }

@@ -172,6 +172,8 @@ Headless / no GPU:
 | `--no-pause-when-silent` | Keep rendering during silence |
 | `--silence-hold SEC` | Seconds of silence before pause (default `30`) |
 | `--silence-threshold F` | Peak `|sample|` treated as silence (default `0.001`) |
+| `--black-on-silence` | On silence pause, send one black DDP frame then stop (off by default) |
+| `--no-black-on-silence` | Hold last frame when pausing (default) |
 | `--set KEY=VALUE` | projectM property (repeatable) |
 
 `--set` keys: `beat_sensitivity`, `hard_cut_duration`, `hard_cut_enabled`, `hard_cut_sensitivity`, `soft_cut_duration`, `preset_duration`, `mesh_size` (`WxH`), `aspect_correction`, `easter_egg`, `preset_locked`, `shuffle`.

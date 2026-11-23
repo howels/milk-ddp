@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later
+ * Copyright (C) 2026 milk-ddp contributors
+ */
 #include "cli.hpp"
 
 #include <cstdlib>
@@ -51,6 +54,9 @@ void print_usage()
         << "  --no-pause-when-silent   Keep rendering during silence\n"
         << "  --silence-hold SEC       Seconds of silence before pause (default 30)\n"
         << "  --silence-threshold F    Peak |sample| below this is silence (default 0.001)\n"
+        << "  --black-on-silence       Before silence pause, send one black DDP frame\n"
+        << "                           so panels clear (off by default)\n"
+        << "  --no-black-on-silence    Hold last frame when pausing (default)\n"
         << "  --set KEY=VALUE          projectM property (repeatable). Keys:\n"
         << "                           beat_sensitivity, hard_cut_duration,\n"
         << "                           hard_cut_enabled, hard_cut_sensitivity,\n"
@@ -227,6 +233,10 @@ Config parse_args(int argc, char** argv)
                 parse_silence_threshold(require_value(i, argc, argv, a));
         } else if (starts_with(a, "--silence-threshold=")) {
             cfg.silence_threshold = parse_silence_threshold(a + 20);
+        } else if (std::strcmp(a, "--black-on-silence") == 0) {
+            cfg.black_on_silence = true;
+        } else if (std::strcmp(a, "--no-black-on-silence") == 0) {
+            cfg.black_on_silence = false;
         } else if (std::strcmp(a, "--list-audio") == 0) {
             cfg.list_audio = true;
         } else if (std::strcmp(a, "--set") == 0) {

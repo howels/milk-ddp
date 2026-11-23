@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later
+ * Copyright (C) 2026 milk-ddp contributors
+ */
 #pragma once
 
 #include <cstdint>
@@ -11,6 +14,9 @@ public:
     virtual int sample_rate() const = 0;
     // Interleaved stereo float in [-1, 1]. Returns samples per channel.
     virtual unsigned int fill(std::vector<float>& interleaved, unsigned int frames) = 0;
+    // While render is paused, call occasionally so capture backends can reconnect
+    // a suspended monitor (Pulse/PipeWire) that stopped delivering callbacks.
+    virtual void nudge_while_paused() {}
 };
 
 // gain: linear amplitude. Pulse applies it as stream soft volume (server-side).

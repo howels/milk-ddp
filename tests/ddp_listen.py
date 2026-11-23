@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 milk-ddp contributors
 """Receive DDP UDP packets and reconstruct RGB frames.
 
 WLED listens on UDP 4048. This process does the same so a headless

@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later
+ * Copyright (C) 2026 milk-ddp contributors
+ */
 #include "audio.hpp"
 
 #include <algorithm>
@@ -268,6 +271,45 @@ public:
         }
         ring_filled_ -= have;
         return frames;
+    }
+
+    void nudge_while_paused() override
+    {
+        // A monitor that was SUSPENDED at connect (no player yet) can stay
+        // READY but deliver no further read callbacks after the sink wakes,
+        // until the record stream is reopened. Reconnect if we have not seen
+        // PCM for a few seconds while the client is paused.
+        if (!connected_.load(std::memory_order_relaxed)) {
+            request_open();
+            return;
+        }
+        const auto now = std::chrono::steady_clock::now();
+        const auto last_ticks = last_read_ticks_.load(std::memory_order_relaxed);
+        if (last_ticks == 0) {
+            return;
+        }
+        const auto last = std::chrono::steady_clock::time_point(
+            std::chrono::steady_clock::duration(last_ticks));
+        if (now - last < std::chrono::seconds(3)) {
+            return;
+        }
+        if (now - last_nudge_reopen_ < std::chrono::seconds(3)) {
+            return;
+        }
+        last_nudge_reopen_ = now;
+        std::cerr << "milk-ddp: PulseAudio capture idle while paused; reopening "
+                  << (active_source_.empty() ? "(default)" : active_source_) << "\n";
+        // Force reopen even if the stream still reports READY (open_stream_locked
+        // would otherwise early-return and leave a stuck capture).
+        pa_threaded_mainloop_lock(mainloop_);
+        const std::string src = active_source_;
+        close_stream_locked();
+        if (!src.empty()) {
+            open_stream_locked(src.c_str());
+        } else if (pa_context_get_state(context_) == PA_CONTEXT_READY) {
+            open_after_ready_locked();
+        }
+        pa_threaded_mainloop_unlock(mainloop_);
     }
 
 private:
@@ -581,6 +623,9 @@ private:
                 }
             }
         }
+        self->last_read_ticks_.store(
+            std::chrono::steady_clock::now().time_since_epoch().count(),
+            std::memory_order_relaxed);
         pa_stream_drop(stream);
     }
 
@@ -599,7 +644,9 @@ private:
     std::size_t ring_filled_ = 0;
     std::mutex ring_mu_;
     std::atomic<bool> connected_{false};
+    std::atomic<std::chrono::steady_clock::rep> last_read_ticks_{0};
     std::chrono::steady_clock::time_point last_retry_{};
+    std::chrono::steady_clock::time_point last_nudge_reopen_{};
 };
 
 #endif  // HAVE_PULSE
@@ -930,6 +977,8 @@ public:
         }
         return got;
     }
+
+    void nudge_while_paused() override { inner_->nudge_while_paused(); }
 
 private:
     std::unique_ptr<AudioSource> inner_;

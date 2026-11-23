@@ -60,8 +60,13 @@ matter more.
 8. **`--pause-when-silent` (default on)** — when PCM peak stays below
    `--silence-threshold` for `--silence-hold` seconds (typical idle PipeWire
    monitor of sendspin/squeezelite with no stream), skip GL render, readback,
-   and DDP and poll audio at 5 Hz. Saves CPU on the NanoPi between tracks.
-   Disable with `--no-pause-when-silent`.
+   and DDP and poll audio at 5 Hz. While paused, milk-ddp drains ~200 ms of
+   capture per poll so a monitor that was silent from startup still resumes
+   when audio returns (otherwise a 1 s ring of zeros hides the new signal).
+   Pulse also reopens the record stream if callbacks stop for several seconds.
+   Disable with `--no-pause-when-silent`. Add `--black-on-silence` to push one
+   all-black DDP frame before pausing so panels clear instead of holding the
+   last visual.
 9. **Avoid extra post-process in presets** — fewer `GetBlur*` taps and shorter
    fractal iteration caps (the in-tree `presets/fractal/` set uses moderate loops).
 

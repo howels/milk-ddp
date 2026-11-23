@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 milk-ddp contributors
 # Local binary and container images for milk-ddp.
 #
 #   make              → configure + build ./build/milk-ddp

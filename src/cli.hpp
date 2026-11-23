@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later
+ * Copyright (C) 2026 milk-ddp contributors
+ */
 #pragma once
 
 #include <cstdint>
@@ -46,6 +49,9 @@ struct Config {
     bool pause_when_silent = true;
     float silence_threshold = 0.001f;  // peak |sample|
     double silence_hold = 30.0;        // seconds of silence before pause
+    // When entering silence pause, send one all-black DDP frame so panels clear
+    // instead of holding the last visual. Off by default; --black-on-silence.
+    bool black_on_silence = false;
     std::vector<std::pair<std::string, std::string>> properties;
 };
 

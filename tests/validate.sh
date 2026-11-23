@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 milk-ddp contributors
 # Render a few frames with Mesa software GL and prove a DDP stream arrives
 # on localhost. No GPU and no window system are required.
 set -euo pipefail
