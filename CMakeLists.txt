@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 milk-ddp contributors
 cmake_minimum_required(VERSION 3.21)
-project(milk-ddp VERSION 0.2.1 LANGUAGES C CXX)
+project(milk-ddp VERSION 0.2.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
