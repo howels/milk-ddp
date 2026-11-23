@@ -40,6 +40,12 @@ struct Config {
     // can populate its on-disk GLSL cache before normal play. On by default for
     // playlist mode; disable with --no-warm-presets.
     bool warm_presets = true;
+    // Skip GL/DDP when PCM stays below silence_threshold for silence_hold
+    // seconds (PipeWire monitor of an idle sendspin/squeezelite sink). On by
+    // default; disable with --no-pause-when-silent.
+    bool pause_when_silent = true;
+    float silence_threshold = 0.001f;  // peak |sample|
+    double silence_hold = 30.0;        // seconds of silence before pause
     std::vector<std::pair<std::string, std::string>> properties;
 };
 

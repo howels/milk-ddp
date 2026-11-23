@@ -46,6 +46,11 @@ void print_usage()
         << "                           cache warp/comp shaders (default for playlists).\n"
         << "                           Prints progress on stderr while warming.\n"
         << "  --no-warm-presets        Skip startup shader warm-up\n"
+        << "  --pause-when-silent      Skip GL/DDP while PCM is idle (default). For\n"
+        << "                           Pulse monitors of idle sendspin/squeezelite sinks.\n"
+        << "  --no-pause-when-silent   Keep rendering during silence\n"
+        << "  --silence-hold SEC       Seconds of silence before pause (default 30)\n"
+        << "  --silence-threshold F    Peak |sample| below this is silence (default 0.001)\n"
         << "  --set KEY=VALUE          projectM property (repeatable). Keys:\n"
         << "                           beat_sensitivity, hard_cut_duration,\n"
         << "                           hard_cut_enabled, hard_cut_sensitivity,\n"
@@ -100,6 +105,17 @@ static float parse_audio_gain(const std::string& s)
     const double v = std::strtod(s.c_str(), &end);
     if (end == s.c_str() || *end != '\0' || !(v >= 0.0) || v > 256.0) {
         throw std::runtime_error("invalid --audio-gain: " + s + " (want float in [0, 256])");
+    }
+    return static_cast<float>(v);
+}
+
+static float parse_silence_threshold(const std::string& s)
+{
+    char* end = nullptr;
+    const double v = std::strtod(s.c_str(), &end);
+    if (end == s.c_str() || *end != '\0' || !(v > 0.0) || v > 1.0) {
+        throw std::runtime_error("invalid --silence-threshold: " + s +
+                                 " (want float in (0, 1])");
     }
     return static_cast<float>(v);
 }
@@ -197,6 +213,20 @@ Config parse_args(int argc, char** argv)
             cfg.warm_presets = true;
         } else if (std::strcmp(a, "--no-warm-presets") == 0) {
             cfg.warm_presets = false;
+        } else if (std::strcmp(a, "--pause-when-silent") == 0) {
+            cfg.pause_when_silent = true;
+        } else if (std::strcmp(a, "--no-pause-when-silent") == 0) {
+            cfg.pause_when_silent = false;
+        } else if (std::strcmp(a, "--silence-hold") == 0) {
+            cfg.silence_hold =
+                parse_positive_seconds(require_value(i, argc, argv, a), "--silence-hold");
+        } else if (starts_with(a, "--silence-hold=")) {
+            cfg.silence_hold = parse_positive_seconds(a + 15, "--silence-hold");
+        } else if (std::strcmp(a, "--silence-threshold") == 0) {
+            cfg.silence_threshold =
+                parse_silence_threshold(require_value(i, argc, argv, a));
+        } else if (starts_with(a, "--silence-threshold=")) {
+            cfg.silence_threshold = parse_silence_threshold(a + 20);
         } else if (std::strcmp(a, "--list-audio") == 0) {
             cfg.list_audio = true;
         } else if (std::strcmp(a, "--set") == 0) {

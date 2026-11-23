@@ -57,7 +57,12 @@ matter more.
    Mesa can populate its on-disk shader cache. Use `--no-warm-presets` to skip.
    Keep `XDG_CACHE_HOME` on a persistent volume (not a tmpfs wiped each pod
    recreate) so the cache survives restarts.
-8. **Avoid extra post-process in presets** — fewer `GetBlur*` taps and shorter
+8. **`--pause-when-silent` (default on)** — when PCM peak stays below
+   `--silence-threshold` for `--silence-hold` seconds (typical idle PipeWire
+   monitor of sendspin/squeezelite with no stream), skip GL render, readback,
+   and DDP and poll audio at 5 Hz. Saves CPU on the NanoPi between tracks.
+   Disable with `--no-pause-when-silent`.
+9. **Avoid extra post-process in presets** — fewer `GetBlur*` taps and shorter
    fractal iteration caps (the in-tree `presets/fractal/` set uses moderate loops).
 
 Not worth it for typical 64–256 matrices: SIMD Y-flip, packing RGB565, or

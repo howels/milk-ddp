@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <csignal>
 #include <fstream>
 #include <iomanip>
@@ -29,6 +30,18 @@
 namespace {
 
 std::atomic<bool> g_stop{false};
+
+float pcm_peak_abs(const std::vector<float>& pcm)
+{
+    float peak = 0.0f;
+    for (float s : pcm) {
+        const float a = std::fabs(s);
+        if (a > peak) {
+            peak = a;
+        }
+    }
+    return peak;
+}
 
 void on_signal(int)
 {
@@ -215,7 +228,13 @@ int main(int argc, char** argv)
                       << "  transition_half_fps="
                       << (cfg.transition_half_fps ? "on" : "off")
                       << "  warm_presets=" << (cfg.warm_presets ? "on" : "off")
-                      << "\n";
+                      << "  pause_when_silent="
+                      << (cfg.pause_when_silent ? "on" : "off");
+            if (cfg.pause_when_silent) {
+                std::cerr << " (hold=" << cfg.silence_hold
+                          << "s thr=" << cfg.silence_threshold << ")";
+            }
+            std::cerr << "\n";
             if (!single_preset.empty()) {
                 print_preset_line(single_preset);
             } else if (added > 0) {
@@ -305,8 +324,11 @@ int main(int argc, char** argv)
         }
 
         const auto frame_dt = std::chrono::duration<double>(1.0 / cfg.fps);
+        const auto idle_poll_dt = std::chrono::duration<double>(0.2);
         auto next = std::chrono::steady_clock::now();
         auto fps_mark = next;
+        auto silence_since = next;  // last time PCM was above threshold
+        bool render_paused = false;
         int frame = 0;
         int fps_frames = 0;
 
@@ -323,14 +345,33 @@ int main(int argc, char** argv)
                 in_soft_cut ? std::min(max_pcm, feed * 2u) : feed;
 
             audio->fill(pcm, this_feed);
-            if (!pcm.empty()) {
-                projectm_pcm_add_float(pm.get(), pcm.data(), this_feed, PROJECTM_STEREO);
+            const float peak = pcm_peak_abs(pcm);
+            const bool silent = peak < cfg.silence_threshold;
+            if (!silent) {
+                silence_since = now_pre;
+            }
+            const bool want_pause = cfg.pause_when_silent && silent &&
+                std::chrono::duration<double>(now_pre - silence_since).count() >=
+                    cfg.silence_hold;
+            if (want_pause != render_paused) {
+                render_paused = want_pause;
+                if (!cfg.quiet) {
+                    std::cerr << (render_paused ? "audio idle; render paused\n"
+                                                : "audio live; render resumed\n");
+                }
             }
 
-            gl.bind_default();
-            projectm_opengl_render_frame(pm.get());
-            gl.read_rgb(rgb.data());
-            ddp.send_rgb_frame(rgb.data(), static_cast<std::size_t>(cfg.width) * cfg.height);
+            if (!render_paused) {
+                if (!pcm.empty()) {
+                    projectm_pcm_add_float(pm.get(), pcm.data(), this_feed, PROJECTM_STEREO);
+                }
+
+                gl.bind_default();
+                projectm_opengl_render_frame(pm.get());
+                gl.read_rgb(rgb.data());
+                ddp.send_rgb_frame(rgb.data(),
+                                   static_cast<std::size_t>(cfg.width) * cfg.height);
+            }
 
             ++frame;
             ++fps_frames;
@@ -343,12 +384,15 @@ int main(int argc, char** argv)
                 std::cerr << "render " << cfg.width << "x" << cfg.height << " @ "
                           << std::fixed << std::setprecision(1) << actual_fps << "/"
                           << cfg.fps << " fps → DDP " << cfg.ddp_host << ":"
-                          << cfg.ddp_port << " (" << ddp.peer() << ")\n";
+                          << cfg.ddp_port << " (" << ddp.peer() << ")"
+                          << (render_paused ? "  [paused]" : "") << "\n";
                 fps_mark = now_fps;
                 fps_frames = 0;
             }
 
-            const auto step = in_soft_cut ? frame_dt * 2.0 : frame_dt;
+            const auto step = render_paused
+                                  ? idle_poll_dt
+                                  : (in_soft_cut ? frame_dt * 2.0 : frame_dt);
             next += std::chrono::duration_cast<std::chrono::steady_clock::duration>(step);
             const auto now = std::chrono::steady_clock::now();
             if (next > now) {

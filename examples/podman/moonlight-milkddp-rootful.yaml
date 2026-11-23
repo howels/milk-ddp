@@ -200,8 +200,9 @@ spec:
     # Monitor taps are quieter in-container; float gain, raise until beat_sensitivity responds.
     - --audio-gain
     - "2.5"
-    # Playlist shader warm-up is on by default (progress on stderr). Optional:
-    # - --transition-half-fps
+    # Playlist shader warm-up is on by default (progress on stderr).
+    # pause-when-silent is on by default (idle sendspin/squeezelite → no GL/DDP).
+    # Optional: --transition-half-fps  --no-pause-when-silent
     # 4048 = milk-ddp/WLED default; 4049 = typical MoonLight DDP input.
     - --ddp
     - 127.0.0.1:4049

@@ -168,6 +168,10 @@ Headless / no GPU:
 | `--no-transition-half-fps` | Disable transition half-fps (default) |
 | `--warm-presets` | Cache warp/comp shaders for every playlist preset at startup (default; 1 frame each, DDP off); prints progress |
 | `--no-warm-presets` | Skip startup shader warm-up |
+| `--pause-when-silent` | Skip GL/DDP while PCM is idle (default); for Pulse monitors of idle players |
+| `--no-pause-when-silent` | Keep rendering during silence |
+| `--silence-hold SEC` | Seconds of silence before pause (default `30`) |
+| `--silence-threshold F` | Peak `|sample|` treated as silence (default `0.001`) |
 | `--set KEY=VALUE` | projectM property (repeatable) |
 
 `--set` keys: `beat_sensitivity`, `hard_cut_duration`, `hard_cut_enabled`, `hard_cut_sensitivity`, `soft_cut_duration`, `preset_duration`, `mesh_size` (`WxH`), `aspect_correction`, `easter_egg`, `preset_locked`, `shuffle`.
