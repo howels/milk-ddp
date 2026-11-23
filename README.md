@@ -268,6 +268,7 @@ In-tree packs:
 - `presets/rush/` — original **GPL** forward-zoom tunnels from waveform-driven geometry
 - `presets/cellular/` — original **GPL** mercury puddles, Giger radial, heat-temper neon
 - `presets/modern/` — **MIT** MilkDrop 2 / mock-3D selection (M0Rf30): Fractal Sanctum, hyperspace, nebulae, kaleidoscope
+- `presets/butterchurn/` — **MIT** pack of 504 MilkDrop `.milk` presets from [jberg/butterchurn-presets](https://github.com/jberg/butterchurn-presets) (authors in filenames; see `butterchurn/NOTICE`)
 
 ```bash
 ./build/milk-ddp --width 64 --height 64 \
@@ -301,9 +302,13 @@ In-tree packs:
 ./build/milk-ddp --width 128 --height 128 \
   --preset-path ./presets/modern --switch-delay 45 \
   --ddp 192.168.1.50:4048 --audio pulse
+
+./build/milk-ddp --width 128 --height 128 \
+  --preset-path ./presets/butterchurn --switch-delay 40 \
+  --ddp 192.168.1.50:4048 --audio pulse
 ```
 
-Details: [`presets/README.md`](presets/README.md), [`presets/cellular/README.md`](presets/cellular/README.md), [`presets/rush/README.md`](presets/rush/README.md), [`presets/jelly/README.md`](presets/jelly/README.md), [`presets/neon/README.md`](presets/neon/README.md), [`presets/surfaces/README.md`](presets/surfaces/README.md), [`presets/fractal/README.md`](presets/fractal/README.md), [`presets/modern/README.md`](presets/modern/README.md).
+Details: [`presets/README.md`](presets/README.md), [`presets/cellular/README.md`](presets/cellular/README.md), [`presets/rush/README.md`](presets/rush/README.md), [`presets/jelly/README.md`](presets/jelly/README.md), [`presets/neon/README.md`](presets/neon/README.md), [`presets/surfaces/README.md`](presets/surfaces/README.md), [`presets/fractal/README.md`](presets/fractal/README.md), [`presets/modern/README.md`](presets/modern/README.md), [`presets/butterchurn/README.md`](presets/butterchurn/README.md).
 
 CPU cost notes (software GL vs GPU, resolution, mesh): [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md).
 
@@ -431,6 +436,7 @@ Pixels are sent row-major, left to right, top to bottom, RGB888. That matches a 
 | milk-ddp application (`src/`, `tests/`, build files) | **GPL-3.0-or-later** (`LICENSE`) |
 | In-tree GPL presets (`presets/milk-ddp-*.milk`, `lowres/`, `fractal/`, `surfaces/`, `neon/`, `jelly/`, `rush/`, `cellular/`) | **GPL-3.0-or-later** |
 | `presets/modern/` (M0Rf30 selection) | **MIT** |
+| `presets/butterchurn/` (jberg/butterchurn-presets `.milk` set) | **MIT** pack; authors named in filenames — see `presets/butterchurn/NOTICE` |
 | libprojectM (FetchContent / local / system) | **LGPL-2.1-or-later** — see `THIRD_PARTY.md` |
 | External preset packs (Cream of the Crop, textures, …) | **Not shipped**; each pack’s own terms |
 

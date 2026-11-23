@@ -16,6 +16,10 @@ from zero with bass and kick.
 `modern/` is a **MIT** curated selection of post-classic MilkDrop 2 presets
 (shaders, mock-3D, fractals) from M0Rf30 — see `modern/README.md`.
 
+`butterchurn/` is the **MIT** MilkDrop `.milk` corpus from
+jberg/butterchurn-presets (504 presets; authors in filenames) — see
+`butterchurn/README.md` and `butterchurn/NOTICE`.
+
 ## Pack layout
 
 | Path | Contents |
@@ -30,6 +34,7 @@ from zero with bass and kick.
 | `rush/` | Twelve GPL forward-zoom waveform geometry / flyover presets |
 | `cellular/` | Five GPL presets: mercury puddles, Giger radial, heat-temper neon |
 | `modern/` | Nine MIT MilkDrop 2 / mock-3D presets (M0Rf30) |
+| `butterchurn/` | 504 MIT-packaged MilkDrop `.milk` presets (Butterchurn upstream) |
 | `LICENSE` | GPL notice for the original in-tree presets |
 
 ### `lowres/` (64×64–256×256 WLED matrices)
@@ -76,7 +81,13 @@ prefer a denser third-party pack plus textures.
   --switch-delay 45 \
   --ddp 192.168.1.50:4048 --audio pulse
 
-# Entire in-tree tree (GPL samples + lowres + modern)
+# Butterchurn MilkDrop corpus (128×128+; optional textures)
+./build/milk-ddp --width 128 --height 128 \
+  --preset-path ./presets/butterchurn \
+  --switch-delay 40 \
+  --ddp 192.168.1.50:4048 --audio pulse
+
+# Entire in-tree tree (GPL samples + MIT packs)
 ./build/milk-ddp --width 128 --height 128 \
   --preset-path ./presets --preset-duration 30 \
   --ddp 192.168.1.50:4048 --audio pulse

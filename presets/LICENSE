@@ -17,3 +17,8 @@ or other third-party packs.
 
 The `modern/` subdirectory is a curated MIT-licensed selection from
 M0Rf30/projectm-presets. See `modern/LICENSE` and `modern/README.md`.
+
+The `butterchurn/` subdirectory is the MilkDrop `.milk` set from
+jberg/butterchurn-presets (MIT pack by Jordan Berg; individual authors
+named in filenames). See `butterchurn/LICENSE`, `butterchurn/NOTICE`,
+and `butterchurn/README.md`.

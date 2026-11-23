@@ -1,0 +1,23 @@
+Butterchurn preset pack — attribution
+
+This directory contains MilkDrop 2 `.milk` files taken from:
+
+  https://github.com/jberg/butterchurn-presets
+  path: presets/milkdrop/
+
+Packaging / Butterchurn conversion project:
+  Copyright (c) 2013-2018 Jordan Berg
+  Licence: MIT (see LICENSE in this directory)
+
+Individual preset authors (non-exhaustive; see each filename):
+  Geiss, Flexi / flexi, martin / Martin, Aderrasi, Zylot, Eo.S.,
+  Rovastar, ORB, shifter, suksma, yin, Cope, LuxXx, Halfbreak,
+  Hexcollie, Stahlregen, fishbrain, amandio c, and others credited
+  in mashup titles.
+
+These `.milk` files are third-party works redistributed via the
+butterchurn-presets project. milk-ddp did not author them. The
+Butterchurn JSON forms (`converted/`, `full/`) are omitted because
+libprojectM loads `.milk` only.
+
+Upstream licence text is reproduced in LICENSE.
