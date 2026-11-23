@@ -132,6 +132,9 @@ jobs:
               --software-gl --preset-path /usr/share/milk-ddp/presets --help
             docker run --rm --entrypoint sh "${image}" -c '
               set -eu
+              test -f /usr/share/milk-ddp/presets/butterchurn/LICENSE
+              milk_n=$(find /usr/share/milk-ddp/presets/butterchurn -maxdepth 1 -name "*.milk" | wc -l)
+              test "${milk_n}" -ge 500
               python3 /usr/libexec/milk-ddp/ddp_listen.py \
                 --bind 127.0.0.1 --port 19049 --width 64 --height 64 \
                 --frames 2 --timeout 60 &
@@ -238,7 +241,7 @@ jobs:
 
             Single-arch tags: `${{ needs.build.outputs.tag }}-alpine-amd64`, `${{ needs.build.outputs.tag }}-alpine-arm64`, `${{ needs.build.outputs.tag }}-debian-amd64`, `${{ needs.build.outputs.tag }}-debian-arm64`.
 
-            Large Milkdrop packs (Cream of the Crop, textures) are **not** included; see `presets/README.md`.
+            In-tree preset packs ship in the host tarball and container image, including **`presets/butterchurn/`** (504 MIT MilkDrop `.milk` files from jberg/butterchurn-presets). Large external packs (Cream of the Crop, textures) are **not** bundled; see `presets/README.md`.
           files: |
             milk-ddp-${{ needs.build.outputs.version }}-linux-amd64.tar.gz
             milk-ddp-${{ needs.build.outputs.version }}-linux-arm64.tar.gz

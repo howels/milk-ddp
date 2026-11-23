@@ -152,6 +152,10 @@ install(DIRECTORY presets/ DESTINATION ${CMAKE_INSTALL_DATADIR}/milk-ddp/presets
 install(FILES presets/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/milk-ddp/presets)
 install(FILES presets/modern/LICENSE
         DESTINATION ${CMAKE_INSTALL_DATADIR}/milk-ddp/presets/modern)
+# MIT pack attribution (NOTICE is not named LICENSE so the DIRECTORY install
+# already keeps it; re-add LICENSE next to the 504 .milk files).
+install(FILES presets/butterchurn/LICENSE
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/milk-ddp/presets/butterchurn)
 install(FILES LICENSE THIRD_PARTY.md DESTINATION ${CMAKE_INSTALL_DOCDIR})
 # Ship whatever documentation is present under docs/ (e.g. PERFORMANCE.md).
 install(DIRECTORY docs/

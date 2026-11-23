@@ -104,6 +104,9 @@ jobs:
           # host-network sharing differs between Docker (Actions) and rootless Podman.
           docker run --rm --entrypoint sh "${IMAGE}" -c '
             set -eu
+            test -f /usr/share/milk-ddp/presets/butterchurn/LICENSE
+            milk_n=$(find /usr/share/milk-ddp/presets/butterchurn -maxdepth 1 -name "*.milk" | wc -l)
+            test "${milk_n}" -ge 500
             python3 /usr/libexec/milk-ddp/ddp_listen.py \
               --bind 127.0.0.1 --port 19049 --width 64 --height 64 \
               --frames 2 --timeout 60 &
